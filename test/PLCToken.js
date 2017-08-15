@@ -26,9 +26,9 @@ contract('PLCToken', function(accounts) {
     });
 
     it('should mint a given amount of tokens to a given address', async function() {
-      await token.mint(accounts[0], 100);
+      await token.mint(accounts[1], 100);
 
-      let balance0 = await token.balanceOf(accounts[0]);
+      let balance0 = await token.balanceOf(accounts[1]);
       assert(balance0, 100);
 
       let totalSupply = await token.totalSupply();
@@ -40,7 +40,7 @@ contract('PLCToken', function(accounts) {
   //test pausable
   describe('test pause',async ()=>{
     beforeEach(async function() {
-      await token.mint(accounts[0], 100);
+      await token.mint(accounts[1], 100);
     });
 
     it('should return paused false after construction', async function() {
@@ -65,43 +65,52 @@ contract('PLCToken', function(accounts) {
     });
 
     it('should be able to transfer if transfers are unpaused', async function() {
-      await token.transfer(accounts[1], 100);
-      let balance0 = await token.balanceOf(accounts[0]);
+      await token.transfer(accounts[0], 100);
+      let balance0 = await token.balanceOf(accounts[1]);
       assert.equal(balance0, 0);
 
-      let balance1 = await token.balanceOf(accounts[1]);
+      let balance1 = await token.balanceOf(accounts[0]);
       assert.equal(balance1, 100);
     });
 
     it('should be able to transfer after transfers are paused and unpaused', async function() {
       await token.pause();
       await token.unpause();
-      await token.transfer(accounts[1], 100);
-      let balance0 = await token.balanceOf(accounts[0]);
+      await token.transfer(accounts[0], 100);
+      let balance0 = await token.balanceOf(accounts[1]);
       assert.equal(balance0, 0);
 
-      let balance1 = await token.balanceOf(accounts[1]);
+      let balance1 = await token.balanceOf(accounts[0]);
       assert.equal(balance1, 100);
     });
 
     it('should throw an error trying to transfer while transactions are paused', async function() {
       await token.pause();
       try {
-        await token.transfer(accounts[1], 100);
-        assert.fail('should have thrown before');
+        await token.transfer(accounts[0], 100);
+        // assert.fail('should have thrown before');
       } catch (error) {
         assertJump(error);
       }
+
+      let balance0 = await token.balanceOf(accounts[1]);
+      let balance1 = await token.balanceOf(accounts[0]);
+      assert.equal(balance0,100);
+      assert.equal(balance1,0)
     });
 
     it('should throw an error trying to transfer from another account while transactions are paused', async function() {
       await token.pause();
       try {
-        await token.transferFrom(accounts[0], accounts[1], 100);
-        assert.fail('should have thrown before');
+        await token.transferFrom(accounts[1], accounts[0], 100);
+        // assert.fail('should have thrown before');
       } catch (error) {
         assertJump(error);
       }
+      let balance0 = await token.balanceOf(accounts[1]);
+      let balance1 = await token.balanceOf(accounts[0]);
+      assert.equal(balance0,100);
+      assert.equal(balance1,0)
     });
   })
 
@@ -109,11 +118,11 @@ contract('PLCToken', function(accounts) {
   describe('test vesting',async ()=>{
     const tokenAmount = 50
 
-    const granter = accounts[0]
-    const receiver = accounts[1]
+    const granter = accounts[1]
+    const receiver = accounts[0]
     let now = 0
     beforeEach(async () => {
-      await token.mint(accounts[0], 100);
+      await token.mint(accounts[1], 100);
       now = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
     })
 
@@ -144,23 +153,32 @@ contract('PLCToken', function(accounts) {
         assert.equal(await token.transferableTokens(receiver, now + vesting), tokenAmount);
       })
 
-      it('throws when trying to transfer non vested tokens', async () => {
+      it('throws when trying to transfer non vested tokens', async () =>{
         try {
-          await token.transfer(accounts[7], 1, { from: receiver })
-          assert.fail('should have thrown before');
+          await token.transfer(accounts[2], 1, { from: receiver })
+          // assert.fail('should have thrown before');
         } catch(error) {
           assertJump(error);
         }
+
+        let balance2 = await token.balanceOf(accounts[2]);
+        let balance1 = await token.balanceOf(accounts[0]); //receiver
+        assert.equal(balance2,0);
+        assert.equal(balance1,tokenAmount)
       })
 
       it('throws when trying to transfer from non vested tokens', async () => {
         try {
-          await token.approve(accounts[7], 1, { from: receiver })
-          await token.transferFrom(receiver, accounts[7], tokenAmount, { from: accounts[7] })
-          assert.fail('should have thrown before');
+          await token.approve(accounts[2], 1, { from: receiver })
+          await token.transferFrom(receiver, accounts[2], tokenAmount, { from: accounts[2] })
+          // assert.fail('should have thrown before');
         } catch(error) {
           assertJump(error);
         }
+        let balance2 = await token.balanceOf(accounts[2]);
+        let balance1 = await token.balanceOf(accounts[0]); //receiver
+        assert.equal(balance2,0);
+        assert.equal(balance1,tokenAmount)
       })
 
       it('can be revoked by granter', async () => {
@@ -171,11 +189,15 @@ contract('PLCToken', function(accounts) {
 
       it('cannot be revoked by non granter', async () => {
         try {
-          await token.revokeTokenGrant(receiver, 0, { from: accounts[3] });
-          assert.fail('should have thrown before');
+          await token.revokeTokenGrant(receiver, 0, { from: accounts[2] });
+          // assert.fail('should have thrown before');
         } catch(error) {
           assertJump(error);
         }
+        let balance2 = await token.balanceOf(accounts[2]);
+        let balance1 = await token.balanceOf(accounts[0]); //receiver
+        assert.equal(balance2,0);
+        assert.equal(balance1,tokenAmount)
       })
 
       it('can be revoked by granter and non vested tokens are returned', async () => {
@@ -232,10 +254,14 @@ contract('PLCToken', function(accounts) {
       it('throws when granter attempts to revoke', async () => {
         try {
           await token.revokeTokenGrant(receiver, 0, { from: granter });
-          assert.fail('should have thrown before');
+          // assert.fail('should have thrown before');
         } catch(error) {
           assertJump(error);
         }
+        let balance0 = await token.balanceOf(accounts[1]); //granter
+        let balance1 = await token.balanceOf(accounts[0]); //receiver
+        assert.equal(balance0,100-tokenAmount);
+        assert.equal(balance1,tokenAmount)
       })
     })
 
@@ -265,6 +291,10 @@ contract('PLCToken', function(accounts) {
         } catch(error) {
           assertJump(error);
         }
+        let balance_burnAddress = await token.balanceOf(burnAddress);
+        let balance1 = await token.balanceOf(accounts[0]); //receiver
+        assert.equal(balance_burnAddress,0);
+        assert.equal(balance1,tokenAmount)
       })
 
       it('can be revoked by granter and non vested tokens are returned', async () => {
