@@ -1,5 +1,5 @@
-var PLCToken = artifacts.require("token/PLCToken.sol");
+var PLC = artifacts.require("token/PLC.sol");
 
 module.exports = function(deployer) {
-  deployer.deploy(PLCToken);
+  deployer.deploy(PLC);
 };

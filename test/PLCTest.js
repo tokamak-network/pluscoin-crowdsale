@@ -2,13 +2,13 @@
 
 const assertJump = require('./helpers/assertJump');
 const timer = require('./helpers/timer');
-var PLCToken = artifacts.require('../contracts/Tokens/PLCToken.sol');
+var PLC = artifacts.require('../contracts/Tokens/PLC.sol');
 
-contract('PLCToken', function(accounts) {
+contract('PLC Test', function(accounts) {
   let token;
 
   beforeEach(async function() {
-    token = await PLCToken.new();
+    token = await PLC.new();
   });
 
   //test mintable
@@ -87,7 +87,7 @@ contract('PLCToken', function(accounts) {
     it('should throw an error trying to transfer while transactions are paused', async function() {
       await token.pause();
       try {
-        await token.transfer(accounts[1], 100);
+        await token.transfer(accounts[1], 100, {from: accounts[0]});
         assert.fail('should have thrown before');
       } catch (error) {
         assertJump(error);
@@ -97,7 +97,7 @@ contract('PLCToken', function(accounts) {
     it('should throw an error trying to transfer from another account while transactions are paused', async function() {
       await token.pause();
       try {
-        await token.transferFrom(accounts[0], accounts[1], 100);
+        await token.transferFrom(accounts[0], accounts[1], 100, {from:accounts[0]});
         assert.fail('should have thrown before');
       } catch (error) {
         assertJump(error);
