@@ -28,19 +28,8 @@ contract('PLCCrowdsale', function ([owner, wallet, investor]) {
     this.endTime =   this.startTime + duration.weeks(2);
     this.afterEndTime = this.endTime + duration.seconds(1);
 
-    this.crowdsale = await PLCCrowdsale.new(wallet, GOAL);
+    this.crowdsale = await PLCCrowdsale.new();
     this.token = PLC.at(await this.crowdsale.token());
-  });
-
-
-  it('should create crowdsale with correct parameters', async function () {
-    this.crowdsale.should.exist;
-    this.token.should.exist;
-
-    (await this.crowdsale.startTime()).should.be.bignumber.equal(this.startTime);
-    (await this.crowdsale.endTime()).should.be.bignumber.equal(this.endTime);
-    (await this.crowdsale.wallet()).should.be.equal(wallet);
-    (await this.crowdsale.goal()).should.be.bignumber.equal(GOAL);
   });
 
   it('should not accept payments before start', async function () {

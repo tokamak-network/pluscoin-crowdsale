@@ -75,9 +75,6 @@ contract PLCCrowdsale is Ownable, SafeMath{
 
   function PLCCrowdsale() {
     /*require(startTime >= now);*/
-    require(endTime >= startTime);
-    require(maxEtherCap > minEtherCap);
-    require(minEtherCap > 0);
 
     token = createTokenContract();
     vault = new RefundVault();
@@ -155,7 +152,7 @@ contract PLCCrowdsale is Ownable, SafeMath{
   function validPurchase() internal constant returns (bool) {
     bool withinPeriod = now >= startTime && now <= endTime;
     bool nonZeroPurchase = msg.value != 0;
-    return withinPeriod && nonZeroPurchase;
+    return withinPeriod && nonZeroPurchase && !maxReached();
   }
 
   // @return true if crowdsale event has ended
