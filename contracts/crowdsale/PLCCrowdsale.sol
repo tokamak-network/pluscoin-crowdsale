@@ -6,8 +6,8 @@ import '../token/PLC.sol';
 import './RefundVault.sol';
 
 /**
- * @title Crowdsale
- * @dev Crowdsale is a base contract for managing a token crowdsale.
+ * @title PLCCrowdsale
+ * @dev PLCCrowdsale is a base contract for managing a token crowdsale.
  * Crowdsales have a start and end timestamps, where investors can make
  * token purchases and the crowdsale will assign them tokens based
  * on a token per ETH rate. Funds collected are forwarded to a wallet
@@ -45,11 +45,6 @@ contract PLCCrowdsale is Ownable, SafeMath{
   // block number when buyer buy
   mapping (address => uint256) public lastCallBlock;
 
-  /**
-   * @title canBuyInBlock
-   * @dev prevent too frequent buying
-   * @param blockInterval block interval number to prevent
-   */
   modifier canBuyInBlock (uint256 blockInterval) {
     require(add(lastCallBlock[msg.sender], blockInterval) < block.number);
     lastCallBlock[msg.sender] = block.number;
@@ -68,7 +63,6 @@ contract PLCCrowdsale is Ownable, SafeMath{
   address devMultisig = 0x01;
   address[5] reserveWallet = [0x11,0x22,0x33,0x44,0x55];
 
-
   /**
    * event for token purchase logging
    * @param purchaser who paid for the tokens
@@ -86,7 +80,7 @@ contract PLCCrowdsale is Ownable, SafeMath{
     require(minEtherCap > 0);
 
     token = createTokenContract();
-    vault = new RefundVault(;
+    vault = new RefundVault();
   }
 
 
@@ -118,7 +112,7 @@ contract PLCCrowdsale is Ownable, SafeMath{
     }
 
     if(add(weiRaised,toFund) > maxEtherCap) {
-      toFund = sub(maxEthercap,weiRaised);
+      toFund = sub(maxEtherCap,weiRaised);
     }
 
     require(weiAmount>=toFund);
@@ -187,7 +181,7 @@ contract PLCCrowdsale is Ownable, SafeMath{
     if (minReached()) {
       vault.close();
 
-      totalToken = token.totalSupply();
+      uint256 totalToken = token.totalSupply();
 
       //dev team 10%
       uint256 devAmount = div(mul(totalToken,10),80);

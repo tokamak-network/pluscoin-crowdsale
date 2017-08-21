@@ -37,7 +37,7 @@ contract RefundVault is Ownable, SafeMath{
     state = State.Closed;
     Closed();
 
-    uint256 balace = this.balance;
+    uint256 balance = this.balance;
 
     uint256 devAmount = div(balance,10);
     devMultisig.transfer(devAmount);
