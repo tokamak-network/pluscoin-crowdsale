@@ -9,7 +9,7 @@
     "parser": "babel-eslint",
     "rules": {
         // indentation
-        "indent": [ 2, 4 ],
+        "indent": [ 1, 2 ],
 
         // spacing
         "template-curly-spacing": [ 2, "always" ],
