@@ -59,10 +59,14 @@ contract PLCCrowdsale is Ownable, SafeMath{
   bool public isFinalized = false;
 
   // minimum amount of funds to be raised in weis
-  uint256 public goal;
+  uint256 public maxEtherCap = 100000 ether;
+  uint256 public minEtherCap = 30000 ether;
 
   // refund vault used to hold funds while crowdsale is running
   RefundVault public vault;
+
+  address devMultisig = 0x01;
+  address[5] reserveWallet = [0x11,0x22,0x33,0x44,0x55];
 
 
   /**
@@ -75,15 +79,15 @@ contract PLCCrowdsale is Ownable, SafeMath{
   event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
   event Finalized();
 
-  function PLCCrowdsale(address _wallet, uint256 _goal) {
+  function PLCCrowdsale(address _wallet) {
     /*require(startTime >= now);*/
     require(endTime >= startTime);
     require(_wallet != 0x0);
-    require(_goal > 0);
+    require(maxEtherCap > minEtherCap);
+    require(minEtherCap > 0);
 
     token = createTokenContract();
     vault = new RefundVault(_wallet);
-    goal = _goal;
   }
 
 
@@ -111,11 +115,17 @@ contract PLCCrowdsale is Ownable, SafeMath{
     if (totalAmount > maxGuaranteedLimit) {
       toFund = sub(totalAmount, maxGuaranteedLimit);
     } else {
-      toFund = msg.value;
+      toFund = weiAmount;
     }
 
+    if(add(weiRaised,toFund) > maxEtherCap) {
+      toFund = sub(maxEthercap,weiRaised);
+    }
+
+    require(weiAmount>=toFund);
+
     // calculate token amount to be created
-    uint256 tokens = mul(weiAmount,getRate());
+    uint256 tokens = mul(toFund,getRate());
 
     if (toFund > 0) {
       // update state
@@ -123,7 +133,7 @@ contract PLCCrowdsale is Ownable, SafeMath{
       buyerFunded[msg.sender] = add(buyerFunded[msg.sender], toFund);
 
       token.mint(beneficiary, tokens);
-      TokenPurchase(msg.sender, beneficiary, weiAmount, tokens);
+      TokenPurchase(msg.sender, beneficiary, toFund, tokens);
 
       forwardFunds();
     }
@@ -164,7 +174,7 @@ contract PLCCrowdsale is Ownable, SafeMath{
   // some extra finalization work
   function finalize() onlyOwner {
     require(!isFinalized);
-    require(hasEnded());
+    require(hasEnded()||maxReached());
 
     finalization();
     Finalized();
@@ -175,8 +185,21 @@ contract PLCCrowdsale is Ownable, SafeMath{
   // end token minting on finalization
   // override this with custom logic if needed
   function finalization() internal {
-    if (goalReached()) {
+    if (minReached()) {
       vault.close();
+
+      totalToken = token.totalSupply();
+
+      //dev team 10%
+      uint256 devAmount = div(mul(totalToken,10),80);
+      token.mint(address(this), devAmount);
+      token.grantVestedTokens(devMultisig, devAmount, uint64(now), uint64(now + 1 years), uint64(now + 1 years),false,false);
+
+      //reserve 10%
+      for(uint8 i=0;i<5;i++){
+        token.mint(reserveWallet[i], div(mul(totalToken,2),80));
+      }
+
     } else {
       vault.enableRefunds();
     }
@@ -187,13 +210,18 @@ contract PLCCrowdsale is Ownable, SafeMath{
   // if crowdsale is unsuccessful, investors can claim refunds here
   function claimRefund() {
     require(isFinalized);
-    require(!goalReached());
+    require(!minReached());
 
     vault.refund(msg.sender);
   }
 
-  function goalReached() public constant returns (bool) {
-    return weiRaised >= goal;
+  function maxReached() public constant returns (bool) {
+    return weiRaised == maxEtherCap;
   }
+
+  function minReached() public constant returns (bool) {
+    return weiRaised >= minEtherCap;
+  }
+
 
 }
