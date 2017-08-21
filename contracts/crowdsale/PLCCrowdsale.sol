@@ -28,6 +28,67 @@ contract PLCCrowdsale is Ownable, SafeMath{
   // amount of raised money in wei
   uint256 public weiRaised;
 
+  // amount of ether buyer can buy
+  uint256 constant public maxGuaranteedLimit = 5000 ether;
+
+  // amount of ether funded for each buyer
+  mapping (address => uint256) public buyerFunded;
+
+  // buyable interval in block number 20
+  uint256 constant public maxCallFrequency = 20;
+
+  // block number when buyer buy
+  mapping (address => uint256) public lastCallBlock;
+
+  /**
+   * @title get payable amount, refund amount considering maxGuaranteedLimit, msg.value
+   * @return toFund payable amount in wei
+   * @return toReturn refund amount in wei
+   */
+  function getAmounts() internal returns (uint256 toFund, uint256 toReturn) {
+    uint256 totalAmount = add(buyerFunded[msg.sender], msg.value);
+
+    if (totalAmount > maxGuaranteedLimit) {
+      toFund = sub(totalAmount, maxGuaranteedLimit);
+    } else {
+      toFund = msg.value;
+    }
+
+    toReturn = sub(msg.value, toFund);
+  }
+
+  /**
+   * @title canBuyInBlock
+   * @dev prevent too frequent buying
+   * @param blockInterval block interval number to prevent
+   */
+  modifier canBuyInBlock (uint256 blockInterval) {
+    require(add(lastCallBlock[msg.sender], blockInterval) < block.number);
+    lastCallBlock[msg.sender] = block.number;
+    _;
+  }
+
+  // example fallback function
+  function() payable canBuyInBlock(maxCallFrequency) {
+    // ... other logics
+
+    uint256 (toFund, toReturn) = getAmounts();
+
+    if (toFund > 0) {
+      buyerFunded[msg.sender] = add(buyerFunded[msg.sender], toFund);
+      // TODO: mint token
+      // do other logic
+    }
+
+    if (toReturn > 0) {
+      msg.sender.transfer(toReturn);
+      // do refund logic
+    }
+
+    // ... other logics
+  }
+
+
   bool public isFinalized = false;
 
   // minimum amount of funds to be raised in weis
