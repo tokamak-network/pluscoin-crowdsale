@@ -1,9 +1,13 @@
+require('babel-register');
+require('babel-polyfill');
+
 module.exports = {
   networks: {
     development: {
       host: "localhost",
       port: 8545,
-      network_id: "*"
+      network_id: "*",
+      gas: 10000000,
     },
     rinkeby: {
       host: "192.168.1.245", // go-ethereum conencted to rinkeby network is running on 192.168.1.245

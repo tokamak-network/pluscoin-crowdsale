@@ -1,8 +1,8 @@
 pragma solidity ^0.4.11;
 
-import '../token/PLC.sol';
 import '../math/SafeMath.sol';
 import '../ownership/Ownable.sol';
+import '../token/PLC.sol';
 import './RefundVault.sol';
 
 /**
@@ -19,11 +19,16 @@ contract PLCCrowdsale is Ownable, SafeMath{
   PLC public token;
 
   // start and end timestamps where investments are allowed (both inclusive)
-  uint256 public startTime;
-  uint256 public endTime;
 
-  // how many token units a buyer gets per wei
-  uint256 public rate;
+
+
+  //startTime for test
+  uint64 public startTime = 1500000000; //2017.9.26 12:00 am (UTC)
+  //uint64 public startTime = 1506384000; //2017.9.26 12:00 am (UTC)
+  uint64 public endTime = 1507593600; //2017.10.10 12:00 am (UTC)
+
+  uint64[5] public deadlines = [1506643200, 1506902400, 1507161600, 1507420800, 1507593600]; // [2017.9.26, 2017.10.02, 2017.10.05, 2017.10.08, 2017.10.10]
+	uint8[5] public rates = [240, 230, 220, 210, 200];
 
   // amount of raised money in wei
   uint256 public weiRaised;
@@ -47,18 +52,13 @@ contract PLCCrowdsale is Ownable, SafeMath{
   event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
   event Finalized();
 
-  function PLCCrowdsale(uint256 _startTime, uint256 _endTime, uint256 _rate, address _wallet, uint256 _goal) {
-    require(_startTime >= now);
-    require(_endTime >= _startTime);
-    require(_rate > 0);
+  function PLCCrowdsale(address _wallet, uint256 _goal) {
+    /*require(startTime >= now);*/
+    require(endTime >= startTime);
     require(_wallet != 0x0);
     require(_goal > 0);
 
-
     token = createTokenContract();
-    startTime = _startTime;
-    endTime = _endTime;
-    rate = _rate;
     vault = new RefundVault(_wallet);
     goal = _goal;
   }
@@ -83,7 +83,7 @@ contract PLCCrowdsale is Ownable, SafeMath{
     uint256 weiAmount = msg.value;
 
     // calculate token amount to be created
-    uint256 tokens = mul(weiAmount,rate);
+    uint256 tokens = mul(weiAmount,getRate());
 
     // update state
     weiRaised = add(weiRaised,weiAmount);
@@ -93,6 +93,13 @@ contract PLCCrowdsale is Ownable, SafeMath{
 
     forwardFunds();
   }
+
+  function getRate() constant returns (uint256 rate){
+        for(uint8 i = 0; i < deadlines.length; i++)
+            if(now<deadlines[i])
+                return rates[i];
+        return rates[rates.length-1];//should never be returned, but to be sure to not divide by 0
+    }
 
   // send ether to the fund collection wallet
   // override to create custom fund forwarding mechanisms

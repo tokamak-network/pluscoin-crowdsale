@@ -2,7 +2,7 @@
 
 const assertJump = require('./helpers/assertJump');
 const timer = require('./helpers/timer');
-var PLC = artifacts.require('../contracts/Tokens/PLC.sol');
+var PLC = artifacts.require('token/PLC.sol');
 
 contract('PLC Test', function(accounts) {
   let token;
