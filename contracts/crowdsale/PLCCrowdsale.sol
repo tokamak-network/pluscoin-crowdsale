@@ -13,18 +13,13 @@ import './RefundVault.sol';
  * on a token per ETH rate. Funds collected are forwarded to a wallet
  * as they arrive.
  */
-contract PLCCrowdsale is Ownable, SafeMath{
+contract PLCCrowdsale is Ownable, SafeMath {
 
   // The token being sold
   PLC public token;
 
   // start and end timestamps where investments are allowed (both inclusive)
-
-
-
-  //startTime for test
-  uint64 public startTime = 1500000000; //2017.9.26 12:00 am (UTC)
-  //uint64 public startTime = 1506384000; //2017.9.26 12:00 am (UTC)
+  uint64 public startTime = 1506384000; //2017.9.26 12:00 am (UTC)
   uint64 public endTime = 1507593600; //2017.10.10 12:00 am (UTC)
 
   uint64[5] public deadlines = [1506643200, 1506902400, 1507161600, 1507420800, 1507593600]; // [2017.9.26, 2017.10.02, 2017.10.05, 2017.10.08, 2017.10.10]
@@ -112,7 +107,7 @@ contract PLCCrowdsale is Ownable, SafeMath{
       toFund = sub(maxEtherCap,weiRaised);
     }
 
-    require(weiAmount>=toFund);
+    require(weiAmount >= toFund);
 
     // calculate token amount to be created
     uint256 tokens = mul(toFund,getRate());
@@ -137,7 +132,7 @@ contract PLCCrowdsale is Ownable, SafeMath{
 
   function getRate() constant returns (uint256 rate){
         for(uint8 i = 0; i < deadlines.length; i++)
-            if(now<deadlines[i])
+            if(now < deadlines[i])
                 return rates[i];
         return rates[rates.length-1];//should never be returned, but to be sure to not divide by 0
     }
@@ -186,7 +181,7 @@ contract PLCCrowdsale is Ownable, SafeMath{
       token.grantVestedTokens(devMultisig, devAmount, uint64(now), uint64(now + 1 years), uint64(now + 1 years),false,false);
 
       //reserve 10%
-      for(uint8 i=0;i<5;i++){
+      for(uint8 i = 0; i < 5; i++){
         token.mint(reserveWallet[i], div(mul(totalToken,2),80));
       }
 
