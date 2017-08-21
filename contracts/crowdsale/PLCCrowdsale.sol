@@ -79,15 +79,14 @@ contract PLCCrowdsale is Ownable, SafeMath{
   event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
   event Finalized();
 
-  function PLCCrowdsale(address _wallet) {
+  function PLCCrowdsale() {
     /*require(startTime >= now);*/
     require(endTime >= startTime);
-    require(_wallet != 0x0);
     require(maxEtherCap > minEtherCap);
     require(minEtherCap > 0);
 
     token = createTokenContract();
-    vault = new RefundVault(_wallet);
+    vault = new RefundVault(;
   }
 
 
