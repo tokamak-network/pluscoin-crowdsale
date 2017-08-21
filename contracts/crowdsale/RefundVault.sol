@@ -29,7 +29,7 @@ contract RefundVault is Ownable, SafeMath{
 
   function deposit(address investor) onlyOwner payable {
     require(state == State.Active);
-    deposited[investor] = add(deposited[investor],msg.value);
+    deposited[investor] = add(deposited[investor], msg.value);
   }
 
   function close() onlyOwner {
@@ -38,12 +38,12 @@ contract RefundVault is Ownable, SafeMath{
 
     uint256 balance = this.balance;
 
-    uint256 devAmount = div(balance,10);
+    uint256 devAmount = div(balance, 10);
     devMultisig.transfer(devAmount);
 
-    uint reserveAmount = div(mul(balance,9),10);
-    for(uint8 i=0;i<5;i++){
-      reserveWallet[i].transfer(div(reserveAmount,5));
+    uint reserveAmount = div(mul(balance, 9), 10);
+    for(uint8 i = 0; i < 5; i++){
+      reserveWallet[i].transfer(div(reserveAmount, 5));
     }
 
     Closed();
