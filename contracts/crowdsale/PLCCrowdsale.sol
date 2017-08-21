@@ -41,23 +41,6 @@ contract PLCCrowdsale is Ownable, SafeMath{
   mapping (address => uint256) public lastCallBlock;
 
   /**
-   * @title get payable amount, refund amount considering maxGuaranteedLimit, msg.value
-   * @return toFund payable amount in wei
-   * @return toReturn refund amount in wei
-   */
-  function getAmounts() internal returns (uint256 toFund, uint256 toReturn) {
-    uint256 totalAmount = add(buyerFunded[msg.sender], msg.value);
-
-    if (totalAmount > maxGuaranteedLimit) {
-      toFund = sub(totalAmount, maxGuaranteedLimit);
-    } else {
-      toFund = msg.value;
-    }
-
-    toReturn = sub(msg.value, toFund);
-  }
-
-  /**
    * @title canBuyInBlock
    * @dev prevent too frequent buying
    * @param blockInterval block interval number to prevent
@@ -67,27 +50,6 @@ contract PLCCrowdsale is Ownable, SafeMath{
     lastCallBlock[msg.sender] = block.number;
     _;
   }
-
-  // example fallback function
-  function() payable canBuyInBlock(maxCallFrequency) {
-    // ... other logics
-
-    uint256 (toFund, toReturn) = getAmounts();
-
-    if (toFund > 0) {
-      buyerFunded[msg.sender] = add(buyerFunded[msg.sender], toFund);
-      // TODO: mint token
-      // do other logic
-    }
-
-    if (toReturn > 0) {
-      msg.sender.transfer(toReturn);
-      // do refund logic
-    }
-
-    // ... other logics
-  }
-
 
   bool public isFinalized = false;
 
@@ -137,22 +99,40 @@ contract PLCCrowdsale is Ownable, SafeMath{
   }
 
   // low level token purchase function
-  function buyTokens(address beneficiary) payable {
+  function buyTokens(address beneficiary) payable canBuyInBlock(maxCallFrequency) {
     require(beneficiary != 0x0);
     require(validPurchase());
 
     uint256 weiAmount = msg.value;
 
+    uint256 totalAmount = add(buyerFunded[msg.sender], weiAmount);
+
+    uint256 toFund;
+    if (totalAmount > maxGuaranteedLimit) {
+      toFund = sub(totalAmount, maxGuaranteedLimit);
+    } else {
+      toFund = msg.value;
+    }
+
     // calculate token amount to be created
-    uint256 tokens = mul(weiAmount,rate);
+    uint256 tokens = mul(toFund,rate);
 
-    // update state
-    weiRaised = add(weiRaised,weiAmount);
+    if (toFund > 0) {
+      // update state
+      weiRaised = add(weiRaised,toFund);
+      buyerFunded[msg.sender] = add(buyerFunded[msg.sender], toFund);
 
-    token.mint(beneficiary, tokens);
-    TokenPurchase(msg.sender, beneficiary, weiAmount, tokens);
+      token.mint(beneficiary, tokens);
+      TokenPurchase(msg.sender, beneficiary, weiAmount, tokens);
 
-    forwardFunds();
+      forwardFunds();
+    }
+
+    uint256 toReturn = sub(weiAmount, toFund);
+
+    if (toReturn > 0) {
+      msg.sender.transfer(toReturn);
+    }
   }
 
   // send ether to the fund collection wallet
