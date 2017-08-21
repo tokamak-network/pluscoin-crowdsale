@@ -33,6 +33,29 @@ contract PLCCrowdsale is Ownable, SafeMath{
   // amount of raised money in wei
   uint256 public weiRaised;
 
+  // amount of ether buyer can buy
+  uint256 constant public maxGuaranteedLimit = 5000 ether;
+
+  // amount of ether funded for each buyer
+  mapping (address => uint256) public buyerFunded;
+
+  // buyable interval in block number 20
+  uint256 constant public maxCallFrequency = 20;
+
+  // block number when buyer buy
+  mapping (address => uint256) public lastCallBlock;
+
+  /**
+   * @title canBuyInBlock
+   * @dev prevent too frequent buying
+   * @param blockInterval block interval number to prevent
+   */
+  modifier canBuyInBlock (uint256 blockInterval) {
+    require(add(lastCallBlock[msg.sender], blockInterval) < block.number);
+    lastCallBlock[msg.sender] = block.number;
+    _;
+  }
+
   bool public isFinalized = false;
 
   // minimum amount of funds to be raised in weis
@@ -76,22 +99,40 @@ contract PLCCrowdsale is Ownable, SafeMath{
   }
 
   // low level token purchase function
-  function buyTokens(address beneficiary) payable {
+  function buyTokens(address beneficiary) payable canBuyInBlock(maxCallFrequency) {
     require(beneficiary != 0x0);
     require(validPurchase());
 
     uint256 weiAmount = msg.value;
 
+    uint256 totalAmount = add(buyerFunded[msg.sender], weiAmount);
+
+    uint256 toFund;
+    if (totalAmount > maxGuaranteedLimit) {
+      toFund = sub(totalAmount, maxGuaranteedLimit);
+    } else {
+      toFund = msg.value;
+    }
+
     // calculate token amount to be created
     uint256 tokens = mul(weiAmount,getRate());
 
-    // update state
-    weiRaised = add(weiRaised,weiAmount);
+    if (toFund > 0) {
+      // update state
+      weiRaised = add(weiRaised,toFund);
+      buyerFunded[msg.sender] = add(buyerFunded[msg.sender], toFund);
 
-    token.mint(beneficiary, tokens);
-    TokenPurchase(msg.sender, beneficiary, weiAmount, tokens);
+      token.mint(beneficiary, tokens);
+      TokenPurchase(msg.sender, beneficiary, weiAmount, tokens);
 
-    forwardFunds();
+      forwardFunds();
+    }
+
+    uint256 toReturn = sub(weiAmount, toFund);
+
+    if (toReturn > 0) {
+      msg.sender.transfer(toReturn);
+    }
   }
 
   function getRate() constant returns (uint256 rate){
