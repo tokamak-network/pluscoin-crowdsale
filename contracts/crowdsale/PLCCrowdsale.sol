@@ -96,6 +96,7 @@ contract PLCCrowdsale is Ownable, SafeMath {
 
     require(beneficiary != 0x00);
     require(validPurchase());
+    require(buyerFunded[msg.sender] < maxGuaranteedLimit);
 
 
     uint256 weiAmount = msg.value;

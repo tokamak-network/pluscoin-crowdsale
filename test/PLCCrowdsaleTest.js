@@ -6,6 +6,7 @@ import EVMThrow from "./helpers/EVMThrow";
 import moment from "moment";
 
 const BigNumber = web3.BigNumber;
+const eth = web3.eth;
 
 const should = require("chai")
   .use(require("chai-as-promised"))
@@ -67,7 +68,8 @@ afterEndTime:\t\t${ afterEndTime }
 now:\t\t\t${now}
 
 ------------------------------
-`);
+`
+);
 
     deadlines = [ 1506643200, 1506902400, 1507161600, 1507420800, 1507593600 ];
     rates = [ 240, 230, 220, 210, 200 ];
@@ -150,7 +152,10 @@ now:\t\t\t${now}
   });
 
   it("should reject payments over 5000 ether", async () => {
+
     const investmentAmount = ether(5001);
+
+    const balanceBeforeInvest = await eth.getBalance(investor);
 
     const rate = await crowdsale.getRate();
     const expectedTokenAmount = rate * (maxGuaranteedLimit);
@@ -162,7 +167,12 @@ now:\t\t\t${now}
       })
       .should.be.fulfilled;
 
+    const balanceAfterInvest = await eth.getBalance(investor);
 
+    //toReturn
+    (balanceBeforeInvest - balanceAfterInvest).should.be.within(5000* 10**18, 5001 * 10**18);
+
+    //toFund
     (await token.balanceOf(investor)).should.be.bignumber.equal(expectedTokenAmount);
     (await token.totalSupply()).should.be.bignumber.equal(expectedTokenAmount);
 
@@ -198,11 +208,12 @@ now:\t\t\t${now}
       .should.be.rejectedWith(EVMThrow);
   });
 
-  //Working ...
   it("should accept toFund and return toReturn", async () => {
 
     await crowdsale.setWeiRaisedForTest(maxEtherCap-ether(100));
     const investmentAmount = ether(101);
+
+    const balanceBeforeInvest = await eth.getBalance(investor);
 
     const rate = await crowdsale.getRate();
     const expectedTokenAmount = rate * ether(100);
@@ -214,10 +225,15 @@ now:\t\t\t${now}
       })
       .should.be.fulfilled;
 
+    const balanceAfterInvest = await eth.getBalance(investor);
+
+    //toReturn
+    (balanceBeforeInvest - balanceAfterInvest).should.be.bignumber.within(100 * 10**18, 101 * 10**18);
+
+    //toFund
     (await token.balanceOf(investor)).should.be.bignumber.equal(expectedTokenAmount);
     (await token.totalSupply()).should.be.bignumber.equal(expectedTokenAmount);
 
-    //ToDo: toReturn Test
   });
 
   //afterEndTime
