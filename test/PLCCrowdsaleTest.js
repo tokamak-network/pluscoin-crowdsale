@@ -141,7 +141,7 @@ now:\t\t\t${ now }
       (await token.totalSupply()).should.be.bignumber.equal(expectedTokenAmount);
     });
 
-   it("should mint following rate for each stage", async () => {
+    it("should mint following rate for each stage", async () => {
       const investmentAmount = ether(1);
       let expectedTokenAmount = new BigNumber(0);
 
@@ -164,7 +164,7 @@ now:\t\t\t${ now }
         (await token.balanceOf(investor)).should.be.bignumber.equal(expectedTokenAmount);
         (await token.totalSupply()).should.be.bignumber.equal(expectedTokenAmount);
       }
-   });
+    });
 
     it("should reject payments over 5000 ether", async () => {
       const investmentAmount = ether(5001);
@@ -228,7 +228,6 @@ now:\t\t\t${ now }
     });
 
     it("should accept toFund and return toReturn", async () => {
-
       const rate = await crowdsale.getRate();
       const investmentAmount = ether(101);
 
@@ -239,8 +238,6 @@ now:\t\t\t${ now }
           from: account,
         }).should.be.fulfilled;
       }
-
-
 
       const balanceBeforeInvest = await eth.getBalance(investor);
 
@@ -262,7 +259,9 @@ now:\t\t\t${ now }
 
       // toFund
       (await token.balanceOf(investor)).should.be.bignumber.equal(expectedTokenAmount);
-      (await token.totalSupply()).should.be.bignumber.equal(beforeTokenAmount.add(expectedTokenAmount));
+      (await token.totalSupply()).should.be.bignumber.equal(
+        beforeTokenAmount.add(expectedTokenAmount),
+      );
     });
 
     it("can finalized during the sale (maxReached)", async () => {
@@ -282,7 +281,6 @@ now:\t\t\t${ now }
     });
 
     it("should reject payments after finalized", async () => {
-
       const investmentAmount = ether(5000);
 
       // 20 accounts, total 100,000 ether
@@ -300,7 +298,6 @@ now:\t\t\t${ now }
         .should.be.rejectedWith(EVMThrow);
     });
 
-
     it("can be finalized after endTime", async () => {
       const investmentAmount = ether(5000);
 
@@ -315,36 +312,36 @@ now:\t\t\t${ now }
       await increaseTimeTo(afterEndTime);
       await crowdsale.finalize().should.be.fulfilled;
 
-      //Ether Distribution
+      // Ether Distribution
       const expectedDevBalance = ether(40000).div(10);
       const expectedEachReserveBalance = ether(40000).mul(18).div(100);
 
       (await eth.getBalance(devMultisig)).should.be.bignumber.equal(expectedDevBalance);
-      for(var i=0;i<5;i++){
-        (await eth.getBalance(reserveWallet[i])).should.be.bignumber.equal(expectedEachReserveBalance);
+      for (var i = 0; i < 5; i++) {
+        (await eth.getBalance(reserveWallet[ i ])).should.be.bignumber.equal(
+          expectedEachReserveBalance,
+        );
       }
 
-      //Token Distribution
+      // Token Distribution
       const totalSupply = await token.totalSupply();
       const expectedDevTokenBalance = totalSupply.mul(10).div(80);
       const expectedEachReserveTokenBalance = totalSupply.mul(2).div(80);
 
       (await token.balanceOf(devMultisig)).should.be.bignumber.equal(expectedDevTokenBalance);
-      for(var i=0;i<5;i++){
-        (await token.balanceOf(reserveWallet[i])).should.be.bignumber.equal(expectedEachReserveTokenBalance);
+      for (var i = 0; i < 5; i++) {
+        (await token.balanceOf(reserveWallet[ i ])).should.be.bignumber.equal(
+          expectedEachReserveTokenBalance,
+        );
       }
-
     });
 
     // afterEndTime
     it("should reject payments after end", async () => {
-
       await crowdsale.send(ether(1)).should.be.rejectedWith(EVMThrow);
       await crowdsale
         .buyTokens(investor, { value: ether(1), from: investor })
         .should.be.rejectedWith(EVMThrow);
     });
-
-
   },
 );
