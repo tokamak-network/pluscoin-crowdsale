@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 testrpc -l 1000000000 \
-  --total_accounts=20 \
   --account="0x1fb06e415fe7bfad222f2fde8d370ce5005e1698ade3f727c8b599070c88c2d0,1000000000000000000000000" \
   --unlock 0 \
   --account="0xbd545e6c84aab512c2fed7b9e03694ef2cead86be24b04b9c5bab73a1d8637af,1000000000000000000000000" \

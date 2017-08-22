@@ -53,8 +53,8 @@ contract PLCCrowdsale is Ownable, SafeMath {
   address[5] reserveWallet = [0x11,0x22,0x33,0x44,0x55];
 
 
-  modifier canBuyInBlock (uint256 blockInterval) {
-    require(add(lastCallBlock[msg.sender], blockInterval) < block.number);
+  modifier canBuyInBlock () {
+    require(add(lastCallBlock[msg.sender], maxCallFrequency) < block.number);
     lastCallBlock[msg.sender] = block.number;
     _;
   }
@@ -68,6 +68,7 @@ contract PLCCrowdsale is Ownable, SafeMath {
    */
   event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
   event Finalized();
+  event ForTest();
 
   function PLCCrowdsale() {
     /*require(startTime >= now);*/
@@ -88,10 +89,14 @@ contract PLCCrowdsale is Ownable, SafeMath {
     buyTokens(msg.sender);
   }
 
+
   // low level token purchase function
-  function buyTokens(address beneficiary) payable {
-    require(beneficiary != 0x0);
+  function buyTokens(address beneficiary) payable canBuyInBlock {
+
+
+    require(beneficiary != 0x00);
     require(validPurchase());
+
 
     uint256 weiAmount = msg.value;
 
@@ -99,7 +104,7 @@ contract PLCCrowdsale is Ownable, SafeMath {
 
     uint256 toFund;
     if (totalAmount > maxGuaranteedLimit) {
-      toFund = sub(totalAmount, maxGuaranteedLimit);
+      toFund = sub(maxGuaranteedLimit, buyerFunded[msg.sender]);
     } else {
       toFund = weiAmount;
     }
@@ -121,7 +126,7 @@ contract PLCCrowdsale is Ownable, SafeMath {
       token.mint(beneficiary, tokens);
       TokenPurchase(msg.sender, beneficiary, toFund, tokens);
 
-      forwardFunds();
+      forwardFunds(toFund);
     }
 
     uint256 toReturn = sub(weiAmount, toFund);
@@ -140,8 +145,8 @@ contract PLCCrowdsale is Ownable, SafeMath {
 
   // send ether to the fund collection wallet
   // override to create custom fund forwarding mechanisms
-  function forwardFunds() internal {
-    vault.deposit.value(msg.value)(msg.sender);
+  function forwardFunds(uint256 toFund) internal {
+    vault.deposit.value(toFund)(msg.sender);
   }
 
   // @return true if the transaction can buy tokens
@@ -209,7 +214,7 @@ contract PLCCrowdsale is Ownable, SafeMath {
     return weiRaised >= minEtherCap;
   }
 
-
+  //Fort Test
   function setWeiRaisedForTest(uint256 raised) {
     weiRaised = raised;
   }
