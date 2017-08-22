@@ -15,9 +15,7 @@ const should = require("chai")
 const PLCCrowdsale = artifacts.require("crowdsale/PLCCrowdsale.sol");
 const PLC = artifacts.require("token/PLC.sol");
 
-const GOAL = ether(10);
-
-contract("PLCCrowdsale", ([ owner, wallet, investor ]) => {
+contract("PLCCrowdsale", ([ owner, wallet, investor, accounts ]) => {
   before(async () => {
     // Advance to the next block to correctly read time in the solidity "now" function interpreted by testrpc
     await advanceBlock();
@@ -72,10 +70,31 @@ contract("PLCCrowdsale", ([ owner, wallet, investor ]) => {
 
     (await this.token.balanceOf(investor)).should.be.bignumber.equal(expectedTokenAmount);
     (await this.token.totalSupply()).should.be.bignumber.equal(expectedTokenAmount);
+
+
+  });
+
+  it("should mint following rate for each stage", async function () {
+    const investmentAmount = ether(1);
+
+    for(var i=0;i<5;i++){
+      await increaseTimeTo(this.deadlines[i]-100);
+      const rate = await this.crowdsale.getRate();
+      const expectedTokenAmount = rate.mul(investmentAmount);
+
+      await this.crowdsale.buyTokens(investor, {
+        value: investmentAmount,
+        from: investor,
+      }).should.be.fulfilled;
+
+      (await this.token.balanceOf(investor)).should.be.bignumber.equal(expectedTokenAmount);
+      (await this.token.totalSupply()).should.be.bignumber.equal(expectedTokenAmount);
+    }
+
   });
 
   it("should reject payments after end", async function () {
-    await increaseTimeTo(this.afterEnd);
+    await increaseTimeTo(this.afterEndTime);
     await this.crowdsale.send(ether(1)).should.be.rejectedWith(EVMThrow);
     await this.crowdsale
       .buyTokens(investor, { value: ether(1), from: investor })
@@ -109,13 +128,10 @@ contract("PLCCrowdsale", ([ owner, wallet, investor ]) => {
       .should.be.rejectedWith(EVMThrow);
   });
 
-  it("should reject frequent payments in 20 blocks", async function () {
-    const investmentAmount = ether(10);
+  it("should reject when maxEtherCap reached", async function () {
 
-    await this.crowdsale.buyTokens(investor, {
-      value: investmentAmount,
-      from: investor,
-    }).should.be.fulfilled;
+    await this.crowdsale.setWeiRaisedForTest(100000 * 10**18);
+    const investmentAmount = ether(1);
 
     await this.crowdsale
       .buyTokens(investor, {
@@ -124,4 +140,27 @@ contract("PLCCrowdsale", ([ owner, wallet, investor ]) => {
       })
       .should.be.rejectedWith(EVMThrow);
   });
+
+  //Working ...
+  it("should accept toFund and return toReturn", async function () {
+
+    await this.crowdsale.setWeiRaisedForTest((100000-100) * 10**18);
+    const investmentAmount = ether(120);
+
+    // await increaseTimeTo(this.deadlines[i]-100);
+
+    const rate = await this.crowdsale.getRate();
+    const expectedTokenAmount = rate.mul(investmentAmount);
+
+    await this.crowdsale
+      .buyTokens(investor, {
+        value: investmentAmount,
+        from: investor,
+      })
+      .should.be.fulfilled;
+
+    (await this.token.balanceOf(investor)).should.be.bignumber.equal(expectedTokenAmount);
+    (await this.token.totalSupply()).should.be.bignumber.equal(expectedTokenAmount);
+  });
+
 });
