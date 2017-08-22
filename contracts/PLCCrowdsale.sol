@@ -1,9 +1,9 @@
 pragma solidity ^0.4.11;
 
-import '../math/SafeMath.sol';
-import '../ownership/Ownable.sol';
-import '../token/PLC.sol';
-import './RefundVault.sol';
+import './math/SafeMath.sol';
+import './ownership/Ownable.sol';
+import './PLC.sol';
+import './crowdsale/RefundVault.sol';
 
 /**
  * @title PLCCrowdsale
@@ -49,7 +49,7 @@ contract PLCCrowdsale is Ownable, SafeMath {
   // refund vault used to hold funds while crowdsale is running
   RefundVault public vault;
 
-  address devMultisig = 0x075451eaec6c450da3ca169e7187ad8b5b745459;
+  address devMultisig;
 
   address[5] reserveWallet = [  0x922aa0d0e720caf10bcd7a02be187635a6f36ab0,
   0x6267901dbb0055e12ea895fc768b68486d57dcf8,
@@ -75,11 +75,12 @@ contract PLCCrowdsale is Ownable, SafeMath {
   event Finalized();
   event ForTest();
 
-  function PLCCrowdsale(address tokenAddress, address refundVaultAddress) {
+  function PLCCrowdsale(address tokenAddress, address refundVaultAddress, address devMultisigAddress) {
     require(startTime >= now);
 
     token = PLC(tokenAddress);
     vault = RefundVault(refundVaultAddress);
+    devMultisig = devMultisigAddress;
 
     /*token = createTokenContract();
     vault = new RefundVault();*/

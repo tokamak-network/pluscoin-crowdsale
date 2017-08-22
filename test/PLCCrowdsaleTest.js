@@ -14,9 +14,10 @@ const should = require("chai")
   .use(require("chai-bignumber")(BigNumber))
   .should();
 
-const PLCCrowdsale = artifacts.require("crowdsale/PLCCrowdsale.sol");
-const PLC = artifacts.require("token/PLC.sol");
+const PLCCrowdsale = artifacts.require("PLCCrowdsale.sol");
+const PLC = artifacts.require("PLC.sol");
 const RefundVault = artifacts.require("crowdsale/RefundVault.sol");
+const MultiSig = artifacts.require("wallet/MultiSigWallet.sol");
 
 contract(
   "PLCCrowdsale",
@@ -35,7 +36,8 @@ contract(
   ) => {
     let snapshotId;
 
-    let crowdsale,
+    let multiSig,
+      crowdsale,
       token,
       vault;
 
@@ -57,12 +59,35 @@ contract(
     let reserveWallet;
 
     before(async () => {
+      reserveWallet = [
+        reserveWallet0,
+        reserveWallet1,
+        reserveWallet2,
+        reserveWallet3,
+        reserveWallet4,
+      ];
+
+      deadlines = [ 1506643200, 1506902400, 1507161600, 1507420800, 1507593600 ];
+      rates = [ 240, 230, 220, 210, 200 ];
+
+      maxGuaranteedLimit = ether(5000);
+      maxCallFrequency = 20;
+
+      maxEtherCap = ether(100000);
+      minEtherCap = ether(30000);
+
+      // deploy contracts
+      multiSig = await MultiSig.new(reserveWallet, reserveWallet.length - 1); // 4 out of 5
+      console.log("multiSig deployed at", multiSig.address);
+
       token = await PLC.new();
-      console.log("PLC deployed at", token.address);
+      console.log("token deployed at", token.address);
+
       vault = await RefundVault.new();
-      console.log(vault.address);
-      crowdsale = await PLCCrowdsale.new(token.address, vault.address);
-      console.log(crowdsale.address);
+      console.log("vault deployed at", vault.address);
+
+      crowdsale = await PLCCrowdsale.new(token.address, vault.address, multiSig.address);
+      console.log("crowdsale deployed at", crowdsale.address);
 
       await token.transferOwnership(crowdsale.address);
       await vault.transferOwnership(crowdsale.address);
@@ -97,23 +122,6 @@ now:\t\t\t${ now }
 
 ------------------------------
 `);
-
-      deadlines = [ 1506643200, 1506902400, 1507161600, 1507420800, 1507593600 ];
-      rates = [ 240, 230, 220, 210, 200 ];
-
-      maxGuaranteedLimit = ether(5000);
-      maxCallFrequency = 20;
-
-      maxEtherCap = ether(100000);
-      minEtherCap = ether(30000);
-
-      reserveWallet = [
-        reserveWallet0,
-        reserveWallet1,
-        reserveWallet2,
-        reserveWallet3,
-        reserveWallet4,
-      ];
     });
 
     describe("testing...", async () => {

@@ -14,7 +14,7 @@ const should = require("chai")
   .use(require("chai-bignumber")(BigNumber))
   .should();
 
-const PLC = artifacts.require("token/PLC.sol");
+const PLC = artifacts.require("PLC.sol");
 
 contract("PLC Test", async ([ owner, , , , , , , , ...accounts ]) => {
   let token;
