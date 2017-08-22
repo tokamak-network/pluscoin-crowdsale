@@ -21,6 +21,7 @@ contract("PLC Test", async ([ owner, , , , , , , , ...accounts ]) => {
 
   beforeEach(async () => {
     token = await PLC.new();
+    console.log("token deployed at", token.address);
   });
 
   // test mintable
