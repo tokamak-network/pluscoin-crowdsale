@@ -89,7 +89,7 @@ contract PLCCrowdsale is Ownable, SafeMath {
   }
 
   // low level token purchase function
-  function buyTokens(address beneficiary) payable canBuyInBlock(maxCallFrequency) {
+  function buyTokens(address beneficiary) payable {
     require(beneficiary != 0x0);
     require(validPurchase());
 
@@ -210,7 +210,7 @@ contract PLCCrowdsale is Ownable, SafeMath {
   }
 
 
-  function setWeiRaisedForTest(uint 256 raised) {
+  function setWeiRaisedForTest(uint256 raised) {
     weiRaised = raised;
   }
 
