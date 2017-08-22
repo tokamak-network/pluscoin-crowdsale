@@ -299,29 +299,30 @@ now:\t\t\t${ now }
     });
 
     it("can be finalized after endTime", async () => {
-      const investmentAmount = ether(5000);
+      const numInvestor = 8;
+      const eachInvestmentAmount = ether(5000);
+      const totalInvestmentAmount = eachInvestmentAmount.mul(numInvestor);
 
-      // 20 accounts, total 100,000 ether
-      for (const account of accounts.slice(0, 8)) {
+      // 8 accounts, total 40,000 ether
+      for (const account of accounts.slice(0, numInvestor)) {
         await crowdsale.buyTokens(account, {
-          value: investmentAmount,
+          value: eachInvestmentAmount,
           from: account,
         }).should.be.fulfilled;
       }
 
       await increaseTimeTo(afterEndTime);
+      await crowdsale.weiRaised().should.be.bignumber.equal(totalInvestmentAmount);
       await crowdsale.finalize().should.be.fulfilled;
 
       // Ether Distribution
-      const expectedDevBalance = ether(40000).div(10);
-      const expectedEachReserveBalance = ether(40000).mul(18).div(100);
+      const expectedDevBalance = totalInvestmentAmount.div(10);
+      const expectedEachReserveBalance = totalInvestmentAmount.mul(18).div(100);
 
       (await eth.getBalance(devMultisig)).should.be.bignumber.equal(expectedDevBalance);
-      for (var i = 0; i < 5; i++) {
-        (await eth.getBalance(reserveWallet[ i ])).should.be.bignumber.equal(
-          expectedEachReserveBalance,
-        );
-      }
+      reserveWallet.forEach(async (wallet) => {
+        (await eth.getBalance(wallet)).should.be.bignumber.equal(expectedEachReserveBalance);
+      });
 
       // Token Distribution
       const totalSupply = await token.totalSupply();
@@ -329,7 +330,7 @@ now:\t\t\t${ now }
       const expectedEachReserveTokenBalance = totalSupply.mul(2).div(80);
 
       (await token.balanceOf(devMultisig)).should.be.bignumber.equal(expectedDevTokenBalance);
-      for (var i = 0; i < 5; i++) {
+      for (let i = 0; i < 5; i++) {
         (await token.balanceOf(reserveWallet[ i ])).should.be.bignumber.equal(
           expectedEachReserveTokenBalance,
         );

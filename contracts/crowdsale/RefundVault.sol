@@ -16,13 +16,13 @@ contract RefundVault is Ownable, SafeMath{
   mapping (address => uint256) public deposited;
   State public state;
 
-  address devMultisig = address(0xbd545e6c84aab512c2fed7b9e03694ef2cead86be24b04b9c5bab73a1d8637af);
+  address public devMultisig = 0x075451eaec6c450da3ca169e7187ad8b5b745459;
 
-  address[5] reserveWallet = [  address(0x7ce2937db134b6f08ef34abe7e9dd5268ee25f4181b4da58be28702d68f01dfc),
-  address(0xf235fc8e2902e0319dcae18125412bdc76a9ca288f4a31901bdc860661c2e175),
-  address(0xd5d43be02fa35322a5dc8d5a9d6fae65dcfd66f697a4d7c9163148ca2e97f88a),
-  address(0xb1b6a6571fc25604d248e3f5b29d9f80c807915775f43775fedf7b832d45fadf),
-  address(0x99e1c27bceb43b844368a06cef69b09ee0ce349cca710016d42d8e5eaf189883)];
+  address[5] reserveWallet = [  0x922aa0d0e720caf10bcd7a02be187635a6f36ab0,
+  0x6267901dbb0055e12ea895fc768b68486d57dcf8,
+  0x236df55249ac7a6dfea613cd69ccd014c3cb8445,
+  0xceca4d86a45cfef2e6431b4a871123a23bef6d87,
+  0x8afe4672155b070e0645c0c9fc50d8eb3eab9a7e];
 
   event Closed();
   event RefundsEnabled();
@@ -37,6 +37,8 @@ contract RefundVault is Ownable, SafeMath{
     deposited[investor] = add(deposited[investor], msg.value);
   }
 
+  event Transferred(address _to, uint _value);
+
   function close() onlyOwner {
     require(state == State.Active);
     state = State.Closed;
@@ -45,10 +47,12 @@ contract RefundVault is Ownable, SafeMath{
 
     uint256 devAmount = div(balance, 10);
     devMultisig.transfer(devAmount);
+    Transferred(devMultisig, devAmount);
 
     uint reserveAmount = div(mul(balance, 9), 10);
     for(uint8 i = 0; i < 5; i++){
       reserveWallet[i].transfer(div(reserveAmount, 5));
+      Transferred(reserveWallet[i], div(reserveAmount, 5));
     }
 
     Closed();
