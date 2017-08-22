@@ -3,3 +3,6 @@ build
 
 # npm
 node_modules
+
+# testrpc related
+.node*

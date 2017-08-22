@@ -13,13 +13,12 @@ import './RefundVault.sol';
  * on a token per ETH rate. Funds collected are forwarded to a wallet
  * as they arrive.
  */
-contract PLCCrowdsale is Ownable, SafeMath{
+contract PLCCrowdsale is Ownable, SafeMath {
 
   // The token being sold
   PLC public token;
 
   // start and end timestamps where investments are allowed (both inclusive)
-
   uint64 public startTime = 1506384000; //2017.9.26 12:00 am (UTC)
   uint64 public endTime = 1507593600; //2017.10.10 12:00 am (UTC)
 
@@ -105,17 +104,17 @@ contract PLCCrowdsale is Ownable, SafeMath{
     }
 
     if(add(weiRaised,toFund) > maxEtherCap) {
-      toFund = sub(maxEtherCap,weiRaised);
+      toFund = sub(maxEthercap, weiRaised);
     }
 
-    require(weiAmount>=toFund);
+    require(weiAmount >= toFund);
 
     // calculate token amount to be created
-    uint256 tokens = mul(toFund,getRate());
+    uint256 tokens = mul(toFund, getRate());
 
     if (toFund > 0) {
       // update state
-      weiRaised = add(weiRaised,toFund);
+      weiRaised = add(weiRaised, toFund);
       buyerFunded[msg.sender] = add(buyerFunded[msg.sender], toFund);
 
       token.mint(beneficiary, tokens);
@@ -131,9 +130,9 @@ contract PLCCrowdsale is Ownable, SafeMath{
     }
   }
 
-  function getRate() constant returns (uint256 rate){
+  function getRate() constant returns (uint256 rate) {
         for(uint8 i = 0; i < deadlines.length; i++)
-            if(now<deadlines[i])
+            if(now < deadlines[i])
                 return rates[i];
         return rates[rates.length-1];//should never be returned, but to be sure to not divide by 0
     }
@@ -160,7 +159,7 @@ contract PLCCrowdsale is Ownable, SafeMath{
   // some extra finalization work
   function finalize() onlyOwner {
     require(!isFinalized);
-    require(hasEnded()||maxReached());
+    require(hasEnded() || maxReached());
 
     finalization();
     Finalized();
@@ -177,12 +176,12 @@ contract PLCCrowdsale is Ownable, SafeMath{
       uint256 totalToken = token.totalSupply();
 
       //dev team 10%
-      uint256 devAmount = div(mul(totalToken,10),80);
+      uint256 devAmount = div(mul(totalToken, 10), 80);
       token.mint(address(this), devAmount);
       token.grantVestedTokens(devMultisig, devAmount, uint64(now), uint64(now + 1 years), uint64(now + 1 years),false,false);
 
       //reserve 10%
-      for(uint8 i=0;i<5;i++){
+      for(uint8 i = 0; i < 5; i++){
         token.mint(reserveWallet[i], div(mul(totalToken,2),80));
       }
 
