@@ -49,8 +49,12 @@ contract PLCCrowdsale is Ownable, SafeMath {
   // refund vault used to hold funds while crowdsale is running
   RefundVault public vault;
 
-  address devMultisig = 0x01;
-  address[5] reserveWallet = [0x11,0x22,0x33,0x44,0x55];
+  address devMultisig = 0xbd545e6c84aab512c2fed7b9e03694ef2cead86be24b04b9c5bab73a1d8637af;
+  address[5] reserveWallet = [  0x7ce2937db134b6f08ef34abe7e9dd5268ee25f4181b4da58be28702d68f01dfc,
+  0xf235fc8e2902e0319dcae18125412bdc76a9ca288f4a31901bdc860661c2e175,
+  0xd5d43be02fa35322a5dc8d5a9d6fae65dcfd66f697a4d7c9163148ca2e97f88a,
+  0xb1b6a6571fc25604d248e3f5b29d9f80c807915775f43775fedf7b832d45fadf,
+  0x99e1c27bceb43b844368a06cef69b09ee0ce349cca710016d42d8e5eaf189883];
 
 
   modifier canBuyInBlock () {
@@ -181,12 +185,12 @@ contract PLCCrowdsale is Ownable, SafeMath {
 
       uint256 totalToken = token.totalSupply();
 
-      //dev team 10%
+      // dev team 10%
       uint256 devAmount = div(mul(totalToken, 10), 80);
       token.mint(address(this), devAmount);
       token.grantVestedTokens(devMultisig, devAmount, uint64(now), uint64(now + 1 years), uint64(now + 1 years),false,false);
 
-      //reserve 10%
+      // reserve 10%
       for(uint8 i = 0; i < 5; i++){
         token.mint(reserveWallet[i], div(mul(totalToken,2),80));
       }
@@ -214,8 +218,8 @@ contract PLCCrowdsale is Ownable, SafeMath {
     return weiRaised >= minEtherCap;
   }
 
-  //Fort Test
-  function setWeiRaisedForTest(uint256 raised) {
+  // For Test
+  function setWeiRaisedForTest(uint256 raised) onlyOwner {
     weiRaised = raised;
   }
 
