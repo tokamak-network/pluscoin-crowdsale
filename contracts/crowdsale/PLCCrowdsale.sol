@@ -40,12 +40,6 @@ contract PLCCrowdsale is Ownable, SafeMath {
   // block number when buyer buy
   mapping (address => uint256) public lastCallBlock;
 
-  modifier canBuyInBlock (uint256 blockInterval) {
-    require(add(lastCallBlock[msg.sender], blockInterval) < block.number);
-    lastCallBlock[msg.sender] = block.number;
-    _;
-  }
-
   bool public isFinalized = false;
 
   // minimum amount of funds to be raised in weis
@@ -87,9 +81,15 @@ contract PLCCrowdsale is Ownable, SafeMath {
     buyTokens(msg.sender);
   }
 
+  modifier canBuyInBlock () {
+    require(add(lastCallBlock[msg.sender], maxCallFrequency) < block.number);
+    lastCallBlock[msg.sender] = block.number;
+    _;
+  }
+
   // low level token purchase function
-  function buyTokens(address beneficiary) payable canBuyInBlock(maxCallFrequency) {
-    require(beneficiary != 0x0);
+  function buyTokens(address beneficiary) payable canBuyInBlock {
+    require(beneficiary != 0x00);
     require(validPurchase());
 
     uint256 weiAmount = msg.value;
@@ -104,7 +104,7 @@ contract PLCCrowdsale is Ownable, SafeMath {
     }
 
     if(add(weiRaised,toFund) > maxEtherCap) {
-      toFund = sub(maxEthercap, weiRaised);
+      toFund = sub(maxEtherCap, weiRaised);
     }
 
     require(weiAmount >= toFund);
