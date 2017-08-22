@@ -1,9 +1,22 @@
-const assertJump = require("./helpers/assertJump");
-const timer = require("./helpers/timer");
+import ether from "./helpers/ether";
+import { advanceBlock } from "./helpers/advanceToBlock";
+import increaseTime, { increaseTimeTo, duration } from "./helpers/increaseTime";
+import latestTime from "./helpers/latestTime";
+import EVMThrow from "./helpers/EVMThrow";
+import { capture, restore } from "./helpers/snapshot";
+import timer from "./helpers/timer";
+
+const BigNumber = web3.BigNumber;
+const eth = web3.eth;
+
+const should = require("chai")
+  .use(require("chai-as-promised"))
+  .use(require("chai-bignumber")(BigNumber))
+  .should();
 
 const PLC = artifacts.require("token/PLC.sol");
 
-contract("PLC Test", (accounts) => {
+contract("PLC Test", async ([ owner, , , , , , , , ...accounts ]) => {
   let token;
 
   beforeEach(async () => {
@@ -13,93 +26,70 @@ contract("PLC Test", (accounts) => {
   // test mintable
   describe("test minting", async () => {
     it("should start with a totalSupply of 0", async () => {
-      const totalSupply = await token.totalSupply();
-
-      assert.equal(totalSupply, 0);
+      (await token.totalSupply()).should.be.bignumber.equal(0);
     });
 
     it("should return mintingFinished false after construction", async () => {
-      const mintingFinished = await token.mintingFinished();
-
-      assert.equal(mintingFinished, false);
+      (await token.mintingFinished()).should.be.equal(false);
     });
 
     it("should mint a given amount of tokens to a given address", async () => {
-      await token.mint(accounts[ 0 ], 100);
+      await token.mint(owner, 100);
 
-      const balance0 = await token.balanceOf(accounts[ 0 ]);
-      assert(balance0, 100);
-
-      const totalSupply = await token.totalSupply();
-      assert(totalSupply, 100);
+      (await token.balanceOf(owner)).should.be.bignumber.equal(100);
+      (await token.totalSupply()).should.be.bignumber.equal(100);
     });
   });
 
   // test pausable
   describe("test pause", async () => {
     beforeEach(async () => {
-      await token.mint(accounts[ 0 ], 100);
+      await token.mint(owner, 100).should.be.fulfilled;
     });
 
     it("should return paused false after construction", async () => {
-      const paused = await token.paused();
-
-      assert.equal(paused, false);
+      (await token.paused()).should.be.equal(false);
     });
 
     it("should return paused true after pause", async () => {
-      await token.pause();
-      const paused = await token.paused();
-
-      assert.equal(paused, true);
+      await token.pause().should.be.fulfilled;
+      (await token.paused()).should.be.equal(true);
     });
 
     it("should return paused false after pause and unpause", async () => {
-      await token.pause();
-      await token.unpause();
-      const paused = await token.paused();
-
-      assert.equal(paused, false);
+      await token.pause().should.be.fulfilled;
+      await token.unpause().should.be.fulfilled;
+      (await token.paused()).should.be.equal(false);
     });
 
     it("should be able to transfer if transfers are unpaused", async () => {
-      await token.transfer(accounts[ 1 ], 100);
-      const balance0 = await token.balanceOf(accounts[ 0 ]);
-      assert.equal(balance0, 0);
+      await token.transfer(accounts[ 1 ], 100).should.be.fulfilled;
 
-      const balance1 = await token.balanceOf(accounts[ 1 ]);
-      assert.equal(balance1, 100);
+      (await token.balanceOf(owner)).should.be.bignumber.equal(0);
+      (await token.balanceOf(accounts[ 1 ])).should.be.bignumber.equal(100);
     });
 
     it("should be able to transfer after transfers are paused and unpaused", async () => {
-      await token.pause();
-      await token.unpause();
-      await token.transfer(accounts[ 1 ], 100);
-      const balance0 = await token.balanceOf(accounts[ 0 ]);
-      assert.equal(balance0, 0);
+      await token.pause().should.be.fulfilled;
+      await token.unpause().should.be.fulfilled;
+      await token.transfer(accounts[ 1 ], 100).should.be.fulfilled;
 
-      const balance1 = await token.balanceOf(accounts[ 1 ]);
-      assert.equal(balance1, 100);
+      (await token.balanceOf(owner)).should.be.bignumber.equal(0);
+      (await token.balanceOf(accounts[ 1 ])).should.be.bignumber.equal(100);
     });
 
     it("should throw an error trying to transfer while transactions are paused", async () => {
       await token.pause();
-      try {
-        await token.transfer(accounts[ 1 ], 100, { from: accounts[ 0 ] });
-        assert.fail("should have thrown before");
-      } catch (error) {
-        assertJump(error);
-      }
+      await token.transfer(accounts[ 1 ], 100, { from: owner }).should.be.rejectedWith(EVMThrow);
     });
 
     it("should throw an error trying to transfer from another account while transactions are paused", async () => {
       await token.pause();
-      try {
-        await token.transferFrom(accounts[ 0 ], accounts[ 1 ], 100, { from: accounts[ 0 ] });
-        assert.fail("should have thrown before");
-      } catch (error) {
-        assertJump(error);
-      }
+      await token
+        .transferFrom(owner, accounts[ 1 ], 100, {
+          from: owner,
+        })
+        .should.be.rejectedWith(EVMThrow);
     });
   });
 
@@ -107,19 +97,21 @@ contract("PLC Test", (accounts) => {
   describe("test vesting", async () => {
     const tokenAmount = 50;
 
-    const granter = accounts[ 0 ];
+    const granter = owner;
     const receiver = accounts[ 1 ];
     let now = 0;
+
     beforeEach(async () => {
-      await token.mint(accounts[ 0 ], 100);
+      await token.mint(owner, 100);
       now = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
     });
 
     it("granter can grant tokens without vesting", async () => {
-      await token.transfer(receiver, tokenAmount, { from: granter });
+      await token.transfer(receiver, tokenAmount, { from: granter }).should.be.fulfilled;
 
-      assert.equal(await token.balanceOf(receiver), tokenAmount);
-      assert.equal(await token.transferableTokens(receiver, now), tokenAmount);
+      (await token.balanceOf(receiver)).should.be.bignumber.equal(tokenAmount);
+
+      (await token.transferableTokens(receiver, now)).should.be.bignumber.equal(tokenAmount);
     });
 
     describe("getting a revokable/non-burnable token grant", async () => {
@@ -140,74 +132,63 @@ contract("PLC Test", (accounts) => {
       });
 
       it("tokens are received", async () => {
-        assert.equal(await token.balanceOf(receiver), tokenAmount);
+        (await token.balanceOf(receiver)).should.be.bignumber.equal(tokenAmount);
       });
 
       it("has 0 transferable tokens before cliff", async () => {
-        assert.equal(await token.transferableTokens(receiver, now), 0);
+        (await token.transferableTokens(receiver, now)).should.be.bignumber.equal(0);
       });
 
       it("all tokens are transferable after vesting", async () => {
-        assert.equal(await token.transferableTokens(receiver, now + vesting), tokenAmount);
-      });
-
-      it("throws when trying to transfer non vested tokens", async () => {
-        try {
-          await token.transfer(accounts[ 7 ], 1, { from: receiver });
-          assert.fail("should have thrown before");
-        } catch (error) {
-          assertJump(error);
-        }
+        (await token.transferableTokens(receiver, now + vesting)).should.be.bignumber.equal(
+          tokenAmount,
+        );
       });
 
       it("throws when trying to transfer from non vested tokens", async () => {
-        try {
-          await token.approve(accounts[ 7 ], 1, { from: receiver });
-          await token.transferFrom(receiver, accounts[ 7 ], tokenAmount, { from: accounts[ 7 ] });
-          assert.fail("should have thrown before");
-        } catch (error) {
-          assertJump(error);
-        }
+        await token.approve(accounts[ 7 ], 1, { from: receiver }).should.be.fulfilled;
+
+        await token
+          .transferFrom(receiver, accounts[ 7 ], tokenAmount, { from: accounts[ 7 ] })
+          .should.be.rejectedWith(EVMThrow);
       });
 
       it("can be revoked by granter", async () => {
-        await token.revokeTokenGrant(receiver, 0, { from: granter });
-        assert.equal(await token.balanceOf(receiver), 0);
-        assert.equal(await token.balanceOf(granter), 100);
+        await token.revokeTokenGrant(receiver, 0, { from: granter }).should.be.fulfilled;
+        (await token.balanceOf(receiver)).should.be.bignumber.equal(0);
+        (await token.balanceOf(granter)).should.be.bignumber.equal(100);
       });
 
       it("cannot be revoked by non granter", async () => {
-        try {
-          await token.revokeTokenGrant(receiver, 0, { from: accounts[ 3 ] });
-          assert.fail("should have thrown before");
-        } catch (error) {
-          assertJump(error);
-        }
+        await token
+          .revokeTokenGrant(receiver, 0, { from: accounts[ 3 ] })
+          .should.be.rejectedWith(EVMThrow);
       });
 
       it("can be revoked by granter and non vested tokens are returned", async () => {
         await timer(cliff);
-        await token.revokeTokenGrant(receiver, 0, { from: granter });
-        assert.equal(await token.balanceOf(receiver), tokenAmount * cliff / vesting);
+        await token.revokeTokenGrant(receiver, 0, { from: granter }).should.be.fulfilled;
+        (await token.balanceOf(receiver)).should.be.bignumber.equal(tokenAmount * cliff / vesting);
       });
 
       it("can transfer all tokens after vesting ends", async () => {
         await timer(vesting);
-        await token.transfer(accounts[ 7 ], tokenAmount, { from: receiver });
-        assert.equal(await token.balanceOf(accounts[ 7 ]), tokenAmount);
+        await token.transfer(accounts[ 7 ], tokenAmount, { from: receiver }).should.be.fulfilled;
+        (await token.balanceOf(accounts[ 7 ])).should.be.bignumber.equal(tokenAmount);
       });
 
       it("can approve and transferFrom all tokens after vesting ends", async () => {
         await timer(vesting);
-        await token.approve(accounts[ 7 ], tokenAmount, { from: receiver });
-        await token.transferFrom(receiver, accounts[ 7 ], tokenAmount, { from: accounts[ 7 ] });
-        assert.equal(await token.balanceOf(accounts[ 7 ]), tokenAmount);
+        await token.approve(accounts[ 7 ], tokenAmount, { from: receiver }).should.be.fulfilled;
+        await token.transferFrom(receiver, accounts[ 7 ], tokenAmount, { from: accounts[ 7 ] }).should
+          .be.fulfilled;
+        (await token.balanceOf(accounts[ 7 ])).should.be.bignumber.equal(tokenAmount);
       });
 
       it("can handle composed vesting schedules", async () => {
         await timer(cliff);
         await token.transfer(accounts[ 7 ], 12, { from: receiver });
-        assert.equal(await token.balanceOf(accounts[ 7 ]), 12);
+        (await token.balanceOf(accounts[ 7 ])).should.be.bignumber.equal(12);
 
         const newNow = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
 
@@ -220,16 +201,18 @@ contract("PLC Test", (accounts) => {
           false,
           false,
           { from: granter },
-        );
+        ).should.be.fulfilled;
 
-        await token.transfer(accounts[ 7 ], 13, { from: receiver });
-        assert.equal(await token.balanceOf(accounts[ 7 ]), tokenAmount / 2);
+        await token.transfer(accounts[ 7 ], 13, { from: receiver }).should.be.fulfilled;
+        (await token.balanceOf(accounts[ 7 ])).should.be.bignumber.equal(tokenAmount / 2);
 
-        assert.equal(await token.balanceOf(receiver), 3 * tokenAmount / 2);
-        assert.equal(await token.transferableTokens(receiver, newNow), 0);
+        (await token.balanceOf(receiver)).should.be.bignumber.equal(3 * tokenAmount / 2);
+        (await token.transferableTokens(receiver, newNow)).should.be.bignumber.equal(0);
+
         await timer(vesting);
-        await token.transfer(accounts[ 7 ], 3 * tokenAmount / 2, { from: receiver });
-        assert.equal(await token.balanceOf(accounts[ 7 ]), tokenAmount * 2);
+        await token.transfer(accounts[ 7 ], 3 * tokenAmount / 2, { from: receiver }).should.be
+          .fulfilled;
+        (await token.balanceOf(accounts[ 7 ])).should.be.bignumber.equal(tokenAmount * 2);
       });
     });
 
@@ -251,16 +234,13 @@ contract("PLC Test", (accounts) => {
       });
 
       it("tokens are received", async () => {
-        assert.equal(await token.balanceOf(receiver), tokenAmount);
+        (await token.balanceOf(receiver)).should.be.bignumber.equal(tokenAmount);
       });
 
       it("throws when granter attempts to revoke", async () => {
-        try {
-          await token.revokeTokenGrant(receiver, 0, { from: granter });
-          assert.fail("should have thrown before");
-        } catch (error) {
-          assertJump(error);
-        }
+        await token
+          .revokeTokenGrant(receiver, 0, { from: granter })
+          .should.be.rejectedWith(EVMThrow);
       });
     });
 
@@ -283,28 +263,27 @@ contract("PLC Test", (accounts) => {
       });
 
       it("tokens are received", async () => {
-        assert.equal(await token.balanceOf(receiver), tokenAmount);
+        (await token.balanceOf(receiver)).should.be.bignumber.equal(tokenAmount);
       });
 
       it("can be revoked by granter and tokens are burned", async () => {
-        await token.revokeTokenGrant(receiver, 0, { from: granter });
-        assert.equal(await token.balanceOf(receiver), 0);
-        assert.equal(await token.balanceOf(burnAddress), tokenAmount);
+        await token.revokeTokenGrant(receiver, 0, { from: granter }).should.be.fulfilled;
+        (await token.balanceOf(receiver)).should.be.bignumber.equal(0);
+        (await token.balanceOf(burnAddress)).should.be.bignumber.equal(tokenAmount);
       });
 
       it("cannot be revoked by non granter", async () => {
-        try {
-          await token.revokeTokenGrant(receiver, 0, { from: accounts[ 3 ] });
-          assert.fail("should have thrown before");
-        } catch (error) {
-          assertJump(error);
-        }
+        await token
+          .revokeTokenGrant(receiver, 0, { from: accounts[ 3 ] })
+          .should.be.rejectedWith(EVMThrow);
       });
 
       it("can be revoked by granter and non vested tokens are returned", async () => {
         await timer(cliff);
-        await token.revokeTokenGrant(receiver, 0, { from: granter });
-        assert.equal(await token.balanceOf(burnAddress), tokenAmount * cliff / vesting);
+        await token.revokeTokenGrant(receiver, 0, { from: granter }).should.be.fulfilled;
+        (await token.balanceOf(burnAddress)).should.be.bignumber.equal(
+          tokenAmount * cliff / vesting,
+        );
       });
     });
   });

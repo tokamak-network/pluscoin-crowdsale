@@ -57,12 +57,11 @@ contract(
     let reserveWallet;
 
     before(async () => {
-
       token = await PLC.new();
-      console.log(token.address);
+      console.log("PLC deployed at", token.address);
       vault = await RefundVault.new();
       console.log(vault.address);
-      crowdsale = await PLCCrowdsale.new(token.address,vault.address);
+      crowdsale = await PLCCrowdsale.new(token.address, vault.address);
       console.log(crowdsale.address);
 
       await token.transferOwnership(crowdsale.address);
@@ -201,7 +200,7 @@ now:\t\t\t${ now }
         // toReturn
         (balanceBeforeInvest - balanceAfterInvest).should.be.within(
           ether(5000).toNumber(),
-          ether(5001).toNumber()
+          ether(5001).toNumber(),
         );
 
         // toFund
@@ -274,7 +273,7 @@ now:\t\t\t${ now }
         // toReturn
         (balanceBeforeInvest - balanceAfterInvest).should.be.within(
           ether(100).toNumber(),
-          ether(101).toNumber()
+          ether(101).toNumber(),
         );
 
         // toFund
@@ -358,7 +357,7 @@ now:\t\t\t${ now }
       //   }
       // });
 
-      //endTime 2
+      // endTime 2
       it("can be finalized after endTime (when minEtherCap is not reached)", async () => {
         const numInvestor = 4;
         const eachInvestmentAmount = ether(5000);
@@ -385,15 +384,17 @@ now:\t\t\t${ now }
           (await eth.getBalance(wallet)).should.be.bignumber.equal(expectedEachReserveBalance);
         });
 
-        //refund claim
+        // refund claim
         for (const account of accounts.slice(0, numInvestor)) {
           const balanceBeforeRefund = await eth.getBalance(account);
-          await crowdsale.claimRefund({from:account}).should.be.fulfilled;
+          await crowdsale.claimRefund({ from: account }).should.be.fulfilled;
           const balanceAfterRefund = await eth.getBalance(account);
 
-          (balanceAfterRefund-balanceBeforeRefund).should.be.within(ether(4999).toNumber(),ether(5000).toNumber());
+          (balanceAfterRefund - balanceBeforeRefund).should.be.within(
+            ether(4999).toNumber(),
+            ether(5000).toNumber(),
+          );
         }
-
       });
 
       // afterEndTime
@@ -405,15 +406,13 @@ now:\t\t\t${ now }
       });
 
       it("should be able to change Token Owner", async () => {
-
         await token.pause().should.be.rejectedWith(EVMThrow);
 
-        //change token owner
+        // change token owner
         await crowdsale.changeTokenOwner(owner);
         (await token.owner()).should.be.equal(owner);
-        //token pause
+        // token pause
         await token.pause().should.be.fulfilled;
-
       });
     });
   },
