@@ -20,11 +20,7 @@ contract PLCCrowdsale is Ownable, SafeMath{
 
   // start and end timestamps where investments are allowed (both inclusive)
 
-
-
-  //startTime for test
-  uint64 public startTime = 1500000000; //2017.9.26 12:00 am (UTC)
-  //uint64 public startTime = 1506384000; //2017.9.26 12:00 am (UTC)
+  uint64 public startTime = 1506384000; //2017.9.26 12:00 am (UTC)
   uint64 public endTime = 1507593600; //2017.10.10 12:00 am (UTC)
 
   uint64[5] public deadlines = [1506643200, 1506902400, 1507161600, 1507420800, 1507593600]; // [2017.9.26, 2017.10.02, 2017.10.05, 2017.10.08, 2017.10.10]
@@ -93,7 +89,7 @@ contract PLCCrowdsale is Ownable, SafeMath{
   }
 
   // low level token purchase function
-  function buyTokens(address beneficiary) payable canBuyInBlock(maxCallFrequency) {
+  function buyTokens(address beneficiary) payable {
     require(beneficiary != 0x0);
     require(validPurchase());
 

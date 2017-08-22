@@ -16,27 +16,26 @@ const PLC = artifacts.require('token/PLC.sol');
 
 contract('PLCCrowdsale', function ([owner, wallet, investor]) {
 
-  const GOAL = ether(10);
-
   before(async function() {
     //Advance to the next block to correctly read time in the solidity "now" function interpreted by testrpc
     await advanceBlock()
   })
 
   beforeEach(async function () {
-    this.startTime = latestTime().unix() + duration.weeks(1);
-    this.endTime =   this.startTime + duration.weeks(2);
-    this.afterEndTime = this.endTime + duration.seconds(1);
 
     this.crowdsale = await PLCCrowdsale.new();
     this.token = PLC.at(await this.crowdsale.token());
+
+    this.startTime = await this.crowdsale.startTime();
+    this.endTime =   await this.crowdsale.endTime();
+    this.afterEndTime = this.endTime + duration.seconds(1);
   });
 
   it('should not accept payments before start', async function () {
     await this.crowdsale.send(ether(1)).should.be.rejectedWith(EVMThrow);
     await this.crowdsale.buyTokens(investor, {from: investor, value: ether(1)}).should.be.rejectedWith(EVMThrow);
   });
-
+  
   it('should accept payments during the sale', async function () {
 
     const investmentAmount = ether(1);
@@ -52,12 +51,12 @@ contract('PLCCrowdsale', function ([owner, wallet, investor]) {
   });
 
   it('should reject payments after end', async function () {
-    await increaseTimeTo(this.afterEnd);
+    await increaseTimeTo(this.afterEndTime);
     await this.crowdsale.send(ether(1)).should.be.rejectedWith(EVMThrow);
     await this.crowdsale.buyTokens(investor, {value: ether(1), from: investor}).should.be.rejectedWith(EVMThrow);
   });
 
-  // it('should reject payments over cap', async function () {
+  // it('should reject payments over maxEtherCap', async function () {
   //   await increaseTimeTo(this.startTime);
   //   await this.crowdsale.send(CAP);
   //   await this.crowdsale.send(1).should.be.rejectedWith(EVMThrow);
