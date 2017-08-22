@@ -39,7 +39,6 @@ contract RefundVault is Ownable, SafeMath{
     uint256 balance = this.balance;
 
     uint256 devAmount = div(balance, 10);
-    uint256 devAmount = this.balance;
     devMultisig.transfer(10);
 
     uint reserveAmount = div(mul(balance, 9), 10);

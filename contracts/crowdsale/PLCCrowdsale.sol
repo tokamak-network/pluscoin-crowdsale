@@ -49,12 +49,13 @@ contract PLCCrowdsale is Ownable, SafeMath {
   // refund vault used to hold funds while crowdsale is running
   RefundVault public vault;
 
-  address devMultisig = 0xbd545e6c84aab512c2fed7b9e03694ef2cead86be24b04b9c5bab73a1d8637af;
-  address[5] reserveWallet = [  0x7ce2937db134b6f08ef34abe7e9dd5268ee25f4181b4da58be28702d68f01dfc,
-  0xf235fc8e2902e0319dcae18125412bdc76a9ca288f4a31901bdc860661c2e175,
-  0xd5d43be02fa35322a5dc8d5a9d6fae65dcfd66f697a4d7c9163148ca2e97f88a,
-  0xb1b6a6571fc25604d248e3f5b29d9f80c807915775f43775fedf7b832d45fadf,
-  0x99e1c27bceb43b844368a06cef69b09ee0ce349cca710016d42d8e5eaf189883];
+  address devMultisig = address(0xbd545e6c84aab512c2fed7b9e03694ef2cead86be24b04b9c5bab73a1d8637af);
+
+  address[5] reserveWallet = [  address(0x7ce2937db134b6f08ef34abe7e9dd5268ee25f4181b4da58be28702d68f01dfc),
+  address(0xf235fc8e2902e0319dcae18125412bdc76a9ca288f4a31901bdc860661c2e175),
+  address(0xd5d43be02fa35322a5dc8d5a9d6fae65dcfd66f697a4d7c9163148ca2e97f88a),
+  address(0xb1b6a6571fc25604d248e3f5b29d9f80c807915775f43775fedf7b832d45fadf),
+  address(0x99e1c27bceb43b844368a06cef69b09ee0ce349cca710016d42d8e5eaf189883)];
 
 
   modifier canBuyInBlock () {
@@ -100,6 +101,7 @@ contract PLCCrowdsale is Ownable, SafeMath {
 
     require(beneficiary != 0x00);
     require(validPurchase());
+    require(buyerFunded[msg.sender] < maxGuaranteedLimit);
 
 
     uint256 weiAmount = msg.value;
