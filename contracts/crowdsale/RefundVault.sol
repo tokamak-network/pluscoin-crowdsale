@@ -16,20 +16,18 @@ contract RefundVault is Ownable, SafeMath{
   mapping (address => uint256) public deposited;
   State public state;
 
-  address public devMultisig = 0x075451eaec6c450da3ca169e7187ad8b5b745459;
+  address public devMultisig;
 
-  address[5] reserveWallet = [  0x922aa0d0e720caf10bcd7a02be187635a6f36ab0,
-  0x6267901dbb0055e12ea895fc768b68486d57dcf8,
-  0x236df55249ac7a6dfea613cd69ccd014c3cb8445,
-  0xceca4d86a45cfef2e6431b4a871123a23bef6d87,
-  0x8afe4672155b070e0645c0c9fc50d8eb3eab9a7e];
+  address[] public reserveWallet;
 
   event Closed();
   event RefundsEnabled();
   event Refunded(address indexed beneficiary, uint256 weiAmount);
 
-  function RefundVault() {
+  function RefundVault(address _devMultiSig, address[] _reserveWallet) {
     state = State.Active;
+    devMultisig = _devMultiSig;
+    reserveWallet = _reserveWallet;
   }
 
   function deposit(address investor) onlyOwner payable {
