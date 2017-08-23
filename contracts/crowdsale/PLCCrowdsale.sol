@@ -75,11 +75,14 @@ contract PLCCrowdsale is Ownable, SafeMath {
   event Finalized();
   event ForTest();
 
-  function PLCCrowdsale() {
-    /*require(startTime >= now);*/
+  function PLCCrowdsale(address tokenAddress, address refundVaultAddress) {
+    require(startTime >= now);
 
-    token = createTokenContract();
-    vault = new RefundVault();
+    token = PLC(tokenAddress);
+    vault = RefundVault(refundVaultAddress);
+
+    /*token = createTokenContract();
+    vault = new RefundVault();*/
   }
 
 

@@ -57,9 +57,16 @@ contract(
     let reserveWallet;
 
     before(async () => {
-      crowdsale = await PLCCrowdsale.new();
-      token = PLC.at(await crowdsale.token());
-      vault = RefundVault.at(await crowdsale.vault());
+
+      token = await PLC.new();
+      console.log(token.address);
+      vault = await RefundVault.new();
+      console.log(vault.address);
+      crowdsale = await PLCCrowdsale.new(token.address,vault.address);
+      console.log(crowdsale.address);
+
+      await token.transferOwnership(crowdsale.address);
+      await vault.transferOwnership(crowdsale.address);
 
       // backup
       snapshotId = await capture();
@@ -383,9 +390,6 @@ now:\t\t\t${ now }
           const balanceBeforeRefund = await eth.getBalance(account);
           await crowdsale.claimRefund({from:account}).should.be.fulfilled;
           const balanceAfterRefund = await eth.getBalance(account);
-
-          console.log("before :",balanceBeforeRefund);
-          console.log("after :",balanceAfterRefund);
 
           (balanceAfterRefund-balanceBeforeRefund).should.be.within(ether(4999).toNumber(),ether(5000).toNumber());
         }

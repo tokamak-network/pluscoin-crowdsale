@@ -13,7 +13,7 @@ module.exports = {
       host: "192.168.1.245", // go-ethereum conencted to rinkeby network is running on 192.168.1.245
       port: 8545,
       network_id: "4",
-      from: "0x91e9cc445e27efb3ae4bc0c782748010e7aab01e",
+      from: "0x3d782870115f1a03bb5eb2547473d9f3e0462995",
       gas: 4000000,
       gasPrice: 20e9,
     },
