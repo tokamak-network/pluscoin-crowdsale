@@ -86,7 +86,7 @@ contract(
       vault = await RefundVault.new(multiSig.address, reserveWallet);
       console.log("vault deployed at", vault.address);
 
-      crowdsale = await PLCCrowdsale.new(token.address, vault.address, multiSig.address);
+      crowdsale = await PLCCrowdsale.new(token.address, vault.address, multiSig.address,reserveWallet);
       console.log("crowdsale deployed at", crowdsale.address);
 
       await token.transferOwnership(crowdsale.address);
@@ -347,7 +347,7 @@ now:\t\t\t${ now }
       //   const expectedDevBalance = totalInvestmentAmount.div(10);
       //   const expectedEachReserveBalance = totalInvestmentAmount.mul(18).div(100);
       //
-      //   (await eth.getBalance(multiSig)).should.be.bignumber.equal(expectedDevBalance);
+      //   (await eth.getBalance(multiSig.address)).should.be.bignumber.equal(expectedDevBalance);
       //   reserveWallet.forEach(async (wallet) => {
       //     (await eth.getBalance(wallet)).should.be.bignumber.equal(expectedEachReserveBalance);
       //   });
@@ -357,7 +357,7 @@ now:\t\t\t${ now }
       //   const expectedDevTokenBalance = totalSupply.mul(10).div(100);
       //   const expectedEachReserveTokenBalance = totalSupply.mul(2).div(100);
       //
-      //   (await token.balanceOf(multiSig)).should.be.bignumber.equal(expectedDevTokenBalance);
+      //   (await token.balanceOf(multiSig.address)).should.be.bignumber.equal(expectedDevTokenBalance);
       //   for (let i = 0; i < 5; i++) {
       //     (await token.balanceOf(reserveWallet[ i ])).should.be.bignumber.equal(
       //       expectedEachReserveTokenBalance,
@@ -387,7 +387,7 @@ now:\t\t\t${ now }
         const expectedDevBalance = new BigNumber(0);
         const expectedEachReserveBalance = new BigNumber(0);
 
-        (await eth.getBalance(multiSig)).should.be.bignumber.equal(expectedDevBalance);
+        (await eth.getBalance(multiSig.address)).should.be.bignumber.equal(expectedDevBalance);
         reserveWallet.forEach(async (wallet) => {
           (await eth.getBalance(wallet)).should.be.bignumber.equal(expectedEachReserveBalance);
         });
