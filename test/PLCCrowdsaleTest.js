@@ -193,8 +193,8 @@ now:\t\t\t${ now }
 
         // toReturn
         (balanceBeforeInvest - balanceAfterInvest).should.be.within(
-          5000 * 10 ** 18,
-          5001 * 10 ** 18,
+          ether(5000).toNumber(),
+          ether(5001).toNumber()
         );
 
         // toFund
@@ -265,9 +265,9 @@ now:\t\t\t${ now }
         const balanceAfterInvest = await eth.getBalance(investor);
 
         // toReturn
-        (balanceBeforeInvest - balanceAfterInvest).should.be.bignumber.within(
-          100 * 10 ** 18,
-          101 * 10 ** 18,
+        (balanceBeforeInvest - balanceAfterInvest).should.be.within(
+          ether(100).toNumber(),
+          ether(101).toNumber()
         );
 
         // toFund
@@ -311,8 +311,49 @@ now:\t\t\t${ now }
           .should.be.rejectedWith(EVMThrow);
       });
 
-      it("can be finalized after endTime", async () => {
-        const numInvestor = 8;
+      // //endTime
+      // it("can be finalized after endTime", async () => {
+      //   const numInvestor = 8;
+      //   const eachInvestmentAmount = ether(5000);
+      //   const totalInvestmentAmount = eachInvestmentAmount.mul(numInvestor);
+      //
+      //   // 8 accounts, total 40,000 ether
+      //   for (const account of accounts.slice(0, numInvestor)) {
+      //     await crowdsale.buyTokens(account, {
+      //       value: eachInvestmentAmount,
+      //       from: account,
+      //     }).should.be.fulfilled;
+      //   }
+      //
+      //   await increaseTimeTo(afterEndTime);
+      //
+      //   await crowdsale.finalize().should.be.fulfilled;
+      //
+      //   // Ether Distribution
+      //   const expectedDevBalance = totalInvestmentAmount.div(10);
+      //   const expectedEachReserveBalance = totalInvestmentAmount.mul(18).div(100);
+      //
+      //   (await eth.getBalance(devMultisig)).should.be.bignumber.equal(expectedDevBalance);
+      //   reserveWallet.forEach(async (wallet) => {
+      //     (await eth.getBalance(wallet)).should.be.bignumber.equal(expectedEachReserveBalance);
+      //   });
+      //
+      //   // Token Distribution
+      //   const totalSupply = await token.totalSupply();
+      //   const expectedDevTokenBalance = totalSupply.mul(10).div(100);
+      //   const expectedEachReserveTokenBalance = totalSupply.mul(2).div(100);
+      //
+      //   (await token.balanceOf(devMultisig)).should.be.bignumber.equal(expectedDevTokenBalance);
+      //   for (let i = 0; i < 5; i++) {
+      //     (await token.balanceOf(reserveWallet[ i ])).should.be.bignumber.equal(
+      //       expectedEachReserveTokenBalance,
+      //     );
+      //   }
+      // });
+
+      //endTime 2
+      it("can be finalized after endTime (when minEtherCap is not reached)", async () => {
+        const numInvestor = 4;
         const eachInvestmentAmount = ether(5000);
         const totalInvestmentAmount = eachInvestmentAmount.mul(numInvestor);
 
@@ -329,25 +370,26 @@ now:\t\t\t${ now }
         await crowdsale.finalize().should.be.fulfilled;
 
         // Ether Distribution
-        const expectedDevBalance = totalInvestmentAmount.div(10);
-        const expectedEachReserveBalance = totalInvestmentAmount.mul(18).div(100);
+        const expectedDevBalance = new BigNumber(0);
+        const expectedEachReserveBalance = new BigNumber(0);
 
         (await eth.getBalance(devMultisig)).should.be.bignumber.equal(expectedDevBalance);
         reserveWallet.forEach(async (wallet) => {
           (await eth.getBalance(wallet)).should.be.bignumber.equal(expectedEachReserveBalance);
         });
 
-        // Token Distribution
-        const totalSupply = await token.totalSupply();
-        const expectedDevTokenBalance = totalSupply.mul(10).div(100);
-        const expectedEachReserveTokenBalance = totalSupply.mul(2).div(100);
+        //refund claim
+        for (const account of accounts.slice(0, numInvestor)) {
+          const balanceBeforeRefund = await eth.getBalance(account);
+          await crowdsale.claimRefund({from:account}).should.be.fulfilled;
+          const balanceAfterRefund = await eth.getBalance(account);
 
-        (await token.balanceOf(devMultisig)).should.be.bignumber.equal(expectedDevTokenBalance);
-        for (let i = 0; i < 5; i++) {
-          (await token.balanceOf(reserveWallet[ i ])).should.be.bignumber.equal(
-            expectedEachReserveTokenBalance,
-          );
+          console.log("before :",balanceBeforeRefund);
+          console.log("after :",balanceAfterRefund);
+
+          (balanceAfterRefund-balanceBeforeRefund).should.be.within(ether(4999).toNumber(),ether(5000).toNumber());
         }
+
       });
 
       // afterEndTime
@@ -356,6 +398,18 @@ now:\t\t\t${ now }
         await crowdsale
           .buyTokens(investor, { value: ether(1), from: investor })
           .should.be.rejectedWith(EVMThrow);
+      });
+
+      it("should be able to change Token Owner", async () => {
+
+        await token.pause().should.be.rejectedWith(EVMThrow);
+
+        //change token owner
+        await crowdsale.changeTokenOwner(owner);
+        (await token.owner()).should.be.equal(owner);
+        //token pause
+        await token.pause().should.be.fulfilled;
+
       });
     });
   },

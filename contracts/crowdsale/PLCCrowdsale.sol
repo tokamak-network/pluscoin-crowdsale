@@ -220,9 +220,8 @@ contract PLCCrowdsale is Ownable, SafeMath {
     return weiRaised >= minEtherCap;
   }
 
-  // For Test
-  function setWeiRaisedForTest(uint256 raised) onlyOwner {
-    weiRaised = raised;
+  function changeTokenOwner(address newOwner) onlyOwner {
+    token.transferOwnership(newOwner);
   }
 
 }
