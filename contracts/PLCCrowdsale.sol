@@ -19,10 +19,16 @@ contract PLCCrowdsale is Ownable, SafeMath {
   PLC public token;
 
   // start and end timestamps where investments are allowed (both inclusive)
-  uint64 public startTime = 1506384000; //2017.9.26 12:00 am (UTC)
-  uint64 public endTime = 1507593600; //2017.10.10 12:00 am (UTC)
+  uint64 public startTime = 1503469200; // 2017년 8월 23일 수요일 오후 3:20:00 GMT+09:00
+  uint64 public endTime = 1507593600; // 2017년 8월 23일 수요일 오후 3:40:00 GMT+09:00
 
-  uint64[5] public deadlines = [1506643200, 1506902400, 1507161600, 1507420800, 1507593600]; // [2017.9.26, 2017.10.02, 2017.10.05, 2017.10.08, 2017.10.10]
+  uint64[5] public deadlines = [
+    1503469500, // 2017년 8월 23일 수요일 오후 3:25:00 GMT+09:00
+    1503469800, // 2017년 8월 23일 수요일 오후 3:30:00 GMT+09:00
+    1503469980, // 2017년 8월 23일 수요일 오후 3:33:00 GMT+09:00
+    1503470100, // 2017년 8월 23일 수요일 오후 3:35:00 GMT+09:00
+    1503470400 // 2017년 8월 23일 수요일 오후 3:40:00 GMT+09:00
+  ];
 	uint8[5] public rates = [240, 230, 220, 210, 200];
 
   // amount of raised money in wei
