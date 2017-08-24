@@ -12,10 +12,10 @@ module.exports = async function (deployer, network, accounts) {
   const token = await PLC.new();
   console.log("token deployed at", token.address);
 
-  const vault = await RefundVault.new();
+  const vault = await RefundVault.new(multiSig.address, reserveWallet);
   console.log("vault deployed at", vault.address);
 
-  const crowdsale = await PLCCrowdsale.new(token.address, vault.address, multiSig.address);
+  const crowdsale = await PLCCrowdsale.new(token.address, vault.address, multiSig.address, reserveWallet);
   console.log("crowdsale deployed at", crowdsale.address);
 
   await token.transferOwnership(crowdsale.address);
