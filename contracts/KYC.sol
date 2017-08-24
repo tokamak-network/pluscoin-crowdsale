@@ -20,7 +20,10 @@ contract KYC is Ownable, SafeMath, Pausable {
     AddressAdded(_addr);
   }
 
-  function preSaled(address _addr, uint256 _amount) public onlyOwner whenNotPaused {
+  function addUserWithPreSale(address _addr, uint256 _amount) public onlyOwner whenNotPaused {
+    knownAddress[_addr] = true;
+    AddressAdded(_addr);
+    
     knownPreSaledAmount[_addr] = _amount;
     AddressPreSaled(_addr, _amount);
   }
