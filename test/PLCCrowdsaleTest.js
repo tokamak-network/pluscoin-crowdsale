@@ -18,6 +18,7 @@ const PLCCrowdsale = artifacts.require("PLCCrowdsale.sol");
 const PLC = artifacts.require("PLC.sol");
 const RefundVault = artifacts.require("crowdsale/RefundVault.sol");
 const MultiSig = artifacts.require("wallet/MultiSigWallet.sol");
+const KYC = artifacts.require("KYC.sol");
 
 contract(
   "PLCCrowdsale",
@@ -39,7 +40,8 @@ contract(
     let multiSig,
       crowdsale,
       token,
-      vault;
+      vault,
+      kyc;
 
     let now,
       startTime,
@@ -49,6 +51,7 @@ contract(
       afterStartTime;
 
     let deadlines,
+      presaleRate,
       rates;
 
     let maxGuaranteedLimit,
@@ -68,6 +71,7 @@ contract(
       ];
 
       deadlines = [ 1506643200, 1506902400, 1507161600, 1507420800, 1507593600 ];
+      presaleRate = 500;
       rates = [ 240, 230, 220, 210, 200 ];
 
       maxGuaranteedLimit = ether(5000);
@@ -86,8 +90,16 @@ contract(
       vault = await RefundVault.new(multiSig.address, reserveWallet);
       console.log("vault deployed at", vault.address);
 
-      crowdsale = await PLCCrowdsale.new(token.address, vault.address, multiSig.address,reserveWallet);
+      crowdsale = await PLCCrowdsale.new(
+        token.address,
+        vault.address,
+        multiSig.address,
+        reserveWallet,
+      );
       console.log("crowdsale deployed at", crowdsale.address);
+
+      kyc = await KYC.new();
+      console.log("kyc deployed at", kyc.address);
 
       await token.transferOwnership(crowdsale.address);
       await vault.transferOwnership(crowdsale.address);
@@ -124,20 +136,20 @@ now:\t\t\t${ now }
 `);
     });
 
-    describe("testing...", async () => {
-      beforeEach(async () => {
-        // restore
-        await restore(snapshotId);
+    beforeEach(async () => {
+      // restore
+      await restore(snapshotId);
 
-        // backup
-        snapshotId = await capture();
+      // backup
+      snapshotId = await capture();
 
-        // proceed 20 block
-        for (const i of Array(20)) {
-          await advanceBlock();
-        }
-      });
+      // proceed 20 block
+      for (const i of Array(20)) {
+        await advanceBlock();
+      }
+    });
 
+    describe("Crowdsale", async () => {
       // before start
       it("should reject payments before start", async () => {
         await increaseTimeTo(beforeStartTime);
@@ -422,6 +434,15 @@ now:\t\t\t${ now }
         // token pause
         await token.pause().should.be.fulfilled;
       });
+    });
+
+    describe("with KYC", async () => {
+      const idx0 = accounts.length / 4;
+      const idx1 = accounts.length * 2 / 4;
+      const idx2 = accounts.length * 3 / 4;
+      const idx3 = accounts.length;
+
+      it("should add user with presaled", async () => {});
     });
   },
 );

@@ -31,7 +31,8 @@ contract("KYC", async ([ owner, , , , , , , , ...accounts ]) => {
 
     it("should add new user initially", async () => {
       for (const account of accounts.slice(0, idx0)) {
-        await kyc.addUser(account).should.be.fulfilled;
+        const key = web3.sha3(Date.now() + account);
+        await kyc.addUser(key, account).should.be.fulfilled;
       }
     });
 
@@ -39,7 +40,8 @@ contract("KYC", async ([ owner, , , , , , , , ...accounts ]) => {
       await kyc.pause();
 
       for (const account of accounts.slice(idx0, idx1)) {
-        await kyc.addUser(account).should.be.rejectedWith(EVMThrow);
+        const key = web3.sha3(Date.now() + account);
+        await kyc.addUser(key, account).should.be.rejectedWith(EVMThrow);
       }
     });
 
@@ -48,7 +50,22 @@ contract("KYC", async ([ owner, , , , , , , , ...accounts ]) => {
       await kyc.unpause();
 
       for (const account of accounts.slice(idx1, idx2)) {
-        await kyc.addUser(account).should.be.fulfilled;
+        const key = web3.sha3(Date.now() + account);
+        await kyc.addUser(key, account).should.be.fulfilled;
+      }
+    });
+
+    it("should not add user who previously added with presale", async () => {
+      for (const account of accounts.slice(idx2, idx3)) {
+        const key = web3.sha3(Date.now() + account);
+
+        await kyc.addUser(key, account).should.be.fulfilled;
+      }
+
+      for (const account of accounts.slice(idx2, idx3)) {
+        const key = web3.sha3(Date.now() + account);
+
+        await kyc.addUser(key, account).should.be.rejectedWith(EVMThrow);
       }
     });
   });
@@ -60,31 +77,50 @@ contract("KYC", async ([ owner, , , , , , , , ...accounts ]) => {
     const idx3 = accounts.length;
 
     it("should add new user initially", async () => {
-      const amount = ether(Math.floor(Math.random() * 4900));
-
       for (const account of accounts.slice(0, idx0)) {
-        await kyc.addUserWithPreSale(account, amount).should.be.fulfilled;
+        const key = web3.sha3(Date.now() + account);
+        const amount = ether(Math.floor(Math.random() * 4900));
+
+        await kyc.addUserWithPreSale(key, account, amount).should.be.fulfilled;
       }
     });
 
     it("should not add new user after paused", async () => {
-      const amount = ether(Math.floor(Math.random() * 4900));
-
       await kyc.pause();
 
       for (const account of accounts.slice(idx0, idx1)) {
-        await kyc.addUserWithPreSale(account, amount).should.be.rejectedWith(EVMThrow);
+        const key = web3.sha3(Date.now() + account);
+        const amount = ether(Math.floor(Math.random() * 4900));
+
+        await kyc.addUserWithPreSale(key, account, amount).should.be.rejectedWith(EVMThrow);
       }
     });
 
     it("should add new user after paused and unpaused", async () => {
-      const amount = ether(Math.floor(Math.random() * 4900));
-
       await kyc.pause();
       await kyc.unpause();
 
       for (const account of accounts.slice(idx1, idx2)) {
-        await kyc.addUserWithPreSale(account, amount).should.be.fulfilled;
+        const key = web3.sha3(Date.now() + account);
+        const amount = ether(Math.floor(Math.random() * 4900));
+
+        await kyc.addUserWithPreSale(key, account, amount).should.be.fulfilled;
+      }
+    });
+
+    it("should not add user who previously added with presale", async () => {
+      for (const account of accounts.slice(idx2, idx3)) {
+        const key = web3.sha3(Date.now() + account);
+        const amount = ether(Math.floor(Math.random() * 4900));
+
+        await kyc.addUserWithPreSale(key, account, amount).should.be.fulfilled;
+      }
+
+      for (const account of accounts.slice(idx2, idx3)) {
+        const key = web3.sha3(Date.now() + account);
+        const amount = ether(Math.floor(Math.random() * 4900));
+
+        await kyc.addUserWithPreSale(key, account, amount).should.be.rejectedWith(EVMThrow);
       }
     });
   });

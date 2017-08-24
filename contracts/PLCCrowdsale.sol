@@ -4,6 +4,8 @@ import './math/SafeMath.sol';
 import './ownership/Ownable.sol';
 import './PLC.sol';
 import './crowdsale/RefundVault.sol';
+import './lifecycle/Pausable.sol';
+import './KYC.sol';
 
 /**
  * @title PLCCrowdsale
@@ -13,7 +15,7 @@ import './crowdsale/RefundVault.sol';
  * on a token per ETH rate. Funds collected are forwarded to a wallet
  * as they arrive.
  */
-contract PLCCrowdsale is Ownable, SafeMath {
+contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
 
   // The token being sold
   PLC public token;
@@ -23,6 +25,8 @@ contract PLCCrowdsale is Ownable, SafeMath {
   uint64 public endTime = 1507593600; //2017.10.10 12:00 am (UTC)
 
   uint64[5] public deadlines = [1506643200, 1506902400, 1507161600, 1507420800, 1507593600]; // [2017.9.26, 2017.10.02, 2017.10.05, 2017.10.08, 2017.10.10]
+
+  uint8 presaleRate = uint8(500);
 	uint8[5] public rates = [240, 230, 220, 210, 200];
 
   // amount of raised money in wei
