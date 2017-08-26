@@ -26,7 +26,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
 
   uint64[5] public deadlines = [1506643200, 1506902400, 1507161600, 1507420800, 1507593600]; // [2017.9.26, 2017.10.02, 2017.10.05, 2017.10.08, 2017.10.10]
 
-  uint8 presaleRate = uint8(500);
+  uint256 presaleRate = 500;
 	uint8[5] public rates = [240, 230, 220, 210, 200];
 
   // amount of raised money in wei
@@ -101,21 +101,21 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
 
 
   // low level token purchase function
-  function buyTokens(address beneficiary) payable canBuyInBlock {
+  function buyTokens(address beneficiary) payable whenNotPaused canBuyInBlock onlyRegistered(msg.sender) {
+    uint256 guaranteedLimit = maxGuaranteedLimit + registeredAmount[msg.sender];
 
-
+    // check validity
     require(beneficiary != 0x00);
     require(validPurchase());
-    require(buyerFunded[msg.sender] < maxGuaranteedLimit);
+    require(buyerFunded[msg.sender] < guaranteedLimit);
 
-
+    // calculate eth amount
     uint256 weiAmount = msg.value;
-
     uint256 totalAmount = add(buyerFunded[msg.sender], weiAmount);
 
     uint256 toFund;
-    if (totalAmount > maxGuaranteedLimit) {
-      toFund = sub(maxGuaranteedLimit, buyerFunded[msg.sender]);
+    if (totalAmount > guaranteedLimit) {
+      toFund = sub(guaranteedLimit, buyerFunded[msg.sender]);
     } else {
       toFund = weiAmount;
     }
@@ -124,11 +124,28 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
       toFund = sub(maxEtherCap, weiRaised);
     }
 
+    // ether for presale
+    uint256 forPreSale;
+    if (buyerFunded[msg.sender] < registeredAmount[msg.sender]) {
+      forPreSale = min256(toFund, sub(registeredAmount[msg.sender], buyerFunded[msg.sender]));
+    }
+
+    // ether for crowdsale
+    uint256 margin = sub(toFund, forPreSale);
+
     require(weiAmount >= toFund);
+    require(toFund == add(forPreSale, margin));
 
-    // calculate token amount to be created
-    uint256 tokens = mul(toFund, getRate());
+    uint256 tokens;
+    if (margin > 0) {
+      tokens = mul(margin, getRate());
+    }
 
+    if (forPreSale > 0) {
+      tokens = add(tokens, mul(forPreSale, presaleRate));
+    }
+
+    // forward ether to vault
     if (toFund > 0) {
       // update state
       weiRaised = add(weiRaised, toFund);
@@ -142,6 +159,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
 
     uint256 toReturn = sub(weiAmount, toFund);
 
+    // return ether if needed
     if (toReturn > 0) {
       msg.sender.transfer(toReturn);
     }
