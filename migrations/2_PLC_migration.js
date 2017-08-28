@@ -7,6 +7,10 @@ const RefundVault = artifacts.require("crowdsale/RefundVault.sol");
 const MultiSig = artifacts.require("wallet/MultiSigWallet.sol");
 
 module.exports = async function (deployer, network, accounts) {
+  const maxEtherCap = 100000 * 10**18;
+  const minEtherCap = 30000 * 10**18;
+  const timelines = [1506384000, 1506643200, 1506902400, 1507161600, 1507420800, 1507593600];
+
   const reserveWallet = accounts.slice(3, 3 + 5);
 
   const multiSig = await MultiSig.new(reserveWallet, reserveWallet.length - 1); // 4 out of 5
@@ -23,7 +27,10 @@ module.exports = async function (deployer, network, accounts) {
     token.address,
     vault.address,
     multiSig.address,
-    reserveWallet
+    reserveWallet,
+    timelines,
+    maxEtherCap,
+    minEtherCap
   );
   /*eslint-enable */
 
