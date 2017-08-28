@@ -42,10 +42,10 @@ contract(
     let now, startTime, endTime;
     let beforeStartTime, afterEndTime, afterStartTime;
 
-    let deadlines, presaleRate, rates;
+    let timelines, presaleRate, rates;
 
     let maxGuaranteedLimit, maxCallFrequency;
-    let maxEtherCap, minEtherCap;
+    let maxEtherCap, minEtherCap, _maxEtherCap, _minEtherCap;
 
     let reserveWallet;
 
@@ -58,7 +58,7 @@ contract(
         reserveWallet4,
       ];
 
-      deadlines = [ 1506643200, 1506902400, 1507161600, 1507420800, 1507593600 ];
+      timelines = [ 1506384000, 1506643200, 1506902400, 1507161600, 1507420800, 1507593600 ];
       presaleRate = 500;
       rates = [ 240, 230, 220, 210, 200 ];
 
@@ -83,6 +83,9 @@ contract(
         vault.address,
         multiSig.address,
         reserveWallet,
+        timelines,
+        maxEtherCap,
+        minEtherCap
       );
       console.log("crowdsale deployed at", crowdsale.address);
 
@@ -189,7 +192,7 @@ now:\t\t\t${ now }
           .should.be.fulfilled;
 
         for (let i = 0; i < 5; i++) {
-          await increaseTimeTo(deadlines[ i ] - 100);
+          await increaseTimeTo(timelines[ i+1 ] - 100);
           const rate = rates[ i ];
 
           expectedTokenAmount = expectedTokenAmount.add(investmentAmount.mul(rate));
