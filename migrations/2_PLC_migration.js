@@ -1,8 +1,10 @@
+const fs = require("fs");
+const path = require("path");
+
 const PLCCrowdsale = artifacts.require("PLCCrowdsale.sol");
 const PLC = artifacts.require("PLC.sol");
 const RefundVault = artifacts.require("crowdsale/RefundVault.sol");
 const MultiSig = artifacts.require("wallet/MultiSigWallet.sol");
-const KYC = artifacts.require("KYC.sol");
 
 module.exports = async function (deployer, network, accounts) {
   const reserveWallet = accounts.slice(3, 3 + 5);
@@ -27,9 +29,13 @@ module.exports = async function (deployer, network, accounts) {
 
   console.log("crowdsale deployed at", crowdsale.address);
 
-  const kyc = await KYC.new();
-  console.log("kyc deployed at", kyc.address);
-
   await token.transferOwnership(crowdsale.address);
   await vault.transferOwnership(crowdsale.address);
+
+  fs.writeFileSync(path.join(__dirname, "../addresses.json"), JSON.stringify({
+    multiSig: multiSig.address,
+    token: token.address,
+    vault: vault.address,
+    crowdsale: crowdsale.address,
+  }, undefined, 2));
 };
