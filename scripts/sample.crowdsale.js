@@ -14,9 +14,10 @@ const addresses = require("../addresses.json");
 const web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
 const provider = web3.currentProvider;
 
-// global variables
+// global variables / funcs
 const eth = web3.eth;
 const ether = v => web3.toWei(v);
+const wei = v => (new web3.BigNumber(v)).mul(1e18).toExponential();
 
 const accounts = eth.accounts;
 
@@ -40,6 +41,9 @@ const vault = RefundVault.at(addresses.vault);
 const state = {
   registered: false,
   invested: false,
+  investTx: "",
+  finalized: false,
+  finalizedTx: "",
 };
 
 const main = async () => {
@@ -55,25 +59,20 @@ const main = async () => {
     const endTime = await crowdsale.endTime();
 
     console.log(`\t\t[Time]
-block.timestamp:${ block }
-now: \t\t${ now }
-startTime: \t${ startTime }
-endTime: \t${ endTime }
+block.timestamp: ${ block }
+now: \t\t ${ now }
+startTime: \t ${ startTime }
+endTime: \t ${ endTime }
+
+\t\t[Ether Balance]
+weiRaised: \t\t ${ wei(await crowdsale.weiRaised()) }
+crowdsale: \t\t ${ wei(await eth.getBalance(crowdsale.address)) }
+vault: \t\t\t ${ wei(await eth.getBalance(vault.address)) }
+
+\t\t[Token Balance]
+investor: \t\t ${ wei(await token.balanceOf(investor)) }
 `);
 
-    const weiRaised = await crowdsale.weiRaised();
-
-    console.log(`\t\t[Crowdsale]
-weiRaised: \t\t ${ weiRaised }
-crowdsale: \t\t ${ await eth.getBalance(crowdsale.address) }
-vault: \t\t\t ${ await eth.getBalance(vault.address) }
-`);
-    console.log(`\t\t[Owner]
-owner: ${ owner }
-crowdsale.owner: ${ await crowdsale.owner() }
-crowdsale.address: ${ crowdsale.address }
-token.owner: ${ await token.owner() }
-`);
     console.log();
     console.log();
 
@@ -104,13 +103,18 @@ token.owner: ${ await token.owner() }
           gas: 200000,
         });
 
-        console.log(r);
-        console.log("investor : 10 eth");
-
+        state.investTx = r;
         state.invested = true;
       }
     } else {
       console.log("sale ended");
+
+      if (!state.finalized) {
+        const r = await crowdsale.finalize();
+
+        state.finalizedTx = r;
+        state.finalized = true;
+      }
     }
   } catch (e) {
     console.error(e);
