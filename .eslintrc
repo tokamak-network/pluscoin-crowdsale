@@ -28,7 +28,7 @@
         "prefer-const": 1,
 
         // keep it simple
-        "complexity": [ 1, 5 ],
+        "complexity": [ 1, 6 ],
 
         // Consisten return
         "consistent-return": 0,
