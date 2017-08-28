@@ -81,7 +81,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
     address _refundVault,
     address _devMultisig,
     address[5] _reserveWallet,
-    uint64[6] _timelines,
+    uint64[6] _timelines, // [startTime, ... , endTime]
     uint256 _maxEtherCap,
     uint256 _minEtherCap) {
 
@@ -145,8 +145,8 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
 
     // ether for presale
     uint256 forPreSale;
-    if (buyerFunded[msg.sender] < registeredAmount[msg.sender]) {
-      forPreSale = min256(toFund, sub(registeredAmount[msg.sender], buyerFunded[msg.sender]));
+    if (buyerFunded[beneficiary] < registeredAmount[beneficiary]) {
+      forPreSale = min256(toFund, sub(registeredAmount[beneficiary], buyerFunded[beneficiary]));
     }
 
     // ether for crowdsale
@@ -164,13 +164,16 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
       tokens = add(tokens, mul(forPreSale, presaleRate));
     }
 
+    require(tokens > 0);
+
     // forward ether to vault
     if (toFund > 0) {
       // update state
       weiRaised = add(weiRaised, toFund);
-      buyerFunded[msg.sender] = add(buyerFunded[msg.sender], toFund);
+      buyerFunded[beneficiary] = add(buyerFunded[beneficiary], toFund);
 
       token.mint(beneficiary, tokens);
+
       TokenPurchase(msg.sender, beneficiary, toFund, tokens);
 
       forwardFunds(toFund);
