@@ -58,25 +58,43 @@ const main = async () => {
     const startTime = await crowdsale.startTime();
     const endTime = await crowdsale.endTime();
 
-    console.log(`\t\t[Time]
+    console.log(`
+\t[Time]
 block.timestamp: ${ block }
 now: \t\t ${ now }
+
 startTime: \t ${ startTime }
 endTime: \t ${ endTime }
 
-\t\t[Ether Balance]
+\t[Address]
+owner:\t\t ${ owner }
+contract.owner:\t ${ await crowdsale.owner() }
+contract:\t ${ crowdsale.address }
+vault.owner:\t ${ await vault.owner() }
+token.owner:\t ${ await token.owner() }
+contract.vault:\t ${ await crowdsale.vault() }
+vault:\t\t ${ vault.address }
+
+\t[Ether Balance]
 weiRaised: \t\t ${ wei(await crowdsale.weiRaised()) }
 crowdsale: \t\t ${ wei(await eth.getBalance(crowdsale.address)) }
 vault: \t\t\t ${ wei(await eth.getBalance(vault.address)) }
 
-\t\t[Token Balance]
+crowdsale.minCap: \t ${ wei(await crowdsale.minEtherCap()) }
+crowdsale.maxCap: \t ${ wei(await crowdsale.maxEtherCap()) }
+
+\t[Token Balance]
 investor: \t\t ${ wei(await token.balanceOf(investor)) }
 `);
 
-    if (state.finalized) {
+    if (state.invested) {
+      console.log(`\t[invest Tx : ${ state.investTx }]`);
     }
 
-    console.log();
+    if (state.finalized) {
+      console.log(`\t[finalize Tx : ${ state.finalizedTx }]`);
+      process.exit();
+    }
 
     console.log();
     console.log();
@@ -96,33 +114,42 @@ investor: \t\t ${ wei(await token.balanceOf(investor)) }
         const isRegistered = await crowdsale.isRegistered(investor);
         console.log(`isRegistered: ${ isRegistered }`);
 
-        // const r = await crowdsale.buyTokens(investor, {
-        //   from: investor,
-        //   value: ether(10),
-        // });
-
-        const r = await eth.sendTransaction({
+        const r = await crowdsale.buyTokens(investor, {
           from: investor,
-          to: crowdsale.address,
-          value: ether(10),
-          gas: 200000,
+          value: ether(20),
+          gas: 200000, // about 160k
         });
 
-        state.investTx = r;
+        // const r = await eth.sendTransaction({
+        //   from: investor,
+        //   to: crowdsale.address,
+        //   value: ether(10),
+        //   gas: 200000,
+        // });
+
+        console.log(r);
+
+        state.investTx = r.tx;
         state.invested = true;
       }
-    } else {
-      console.log("sale ended");
+    } else if (moment(endTime).unix() + 2 <= now) {
+      console.log("sale to be ended");
 
-      if (!state.finalized) {
-        const r = await crowdsale.finalize();
+      const r = await crowdsale.finalize({
+        from: owner,
+        gas: 400000, // 385417
+      });
 
-        state.finalizedTx = r;
-        state.finalized = true;
-      }
+      console.log("sale finalized");
+
+      console.log(r);
+
+      state.finalizedTx = r.tx;
+      state.finalized = true;
     }
   } catch (e) {
     console.error(e);
+    process.exit();
   }
 
   console.log("------------------------");
