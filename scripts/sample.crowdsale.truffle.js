@@ -116,8 +116,6 @@ token.owner: ${ await token.owner() }
     console.error(e);
   }
 
-  eth.sendTransaction({ from: eth.accounts[0], to : eth.accounts[1], value: web3. })
-
   console.log("------------------------");
   console.log();
   console.log();
