@@ -16,12 +16,11 @@ const should = require("chai")
 
 const PLC = artifacts.require("PLC.sol");
 
-contract("PLC Test", async ([ owner, , , , , , , , ...accounts ]) => {
+contract("PLC", async ([ owner, , , , , , , , ...accounts ]) => {
   let token;
 
   beforeEach(async () => {
     token = await PLC.new();
-    console.log("token deployed at", token.address);
   });
 
   // test mintable
