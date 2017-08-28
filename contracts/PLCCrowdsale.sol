@@ -21,13 +21,15 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
   PLC public token;
 
   // start and end timestamps where investments are allowed (both inclusive)
-  uint64 public startTime = 1506384000; //2017.9.26 12:00 am (UTC)
-  uint64 public endTime = 1507593600; //2017.10.10 12:00 am (UTC)
+  uint64 public startTime; // 1506384000; //2017.9.26 12:00 am (UTC)
+  uint64 public endTime; // 1507593600; //2017.10.10 12:00 am (UTC)
 
-  uint64[5] public deadlines = [1506643200, 1506902400, 1507161600, 1507420800, 1507593600]; // [2017.9.26, 2017.10.02, 2017.10.05, 2017.10.08, 2017.10.10]
+  uint64[5] public deadlines; // [1506643200, 1506902400, 1507161600, 1507420800, 1507593600]; // [2017.9.26, 2017.10.02, 2017.10.05, 2017.10.08, 2017.10.10]
 
   uint256 presaleRate = 500;
 	uint8[5] public rates = [240, 230, 220, 210, 200];
+
+
 
   // amount of raised money in wei
   uint256 public weiRaised;
@@ -47,16 +49,15 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
   bool public isFinalized = false;
 
   // minimum amount of funds to be raised in weis
-  uint256 public maxEtherCap = 100000 ether;
-  uint256 public minEtherCap = 30000 ether;
+  uint256 public maxEtherCap; // 100000 ether;
+  uint256 public minEtherCap; // 30000 ether;
 
   // refund vault used to hold funds while crowdsale is running
   RefundVault public vault;
 
   address devMultisig;
 
-  address[] reserveWallet;
-
+  address[5] reserveWallet;
 
   modifier canBuyInBlock () {
     require(add(lastCallBlock[msg.sender], maxCallFrequency) < block.number);
@@ -75,13 +76,31 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
   event Finalized();
   event ForTest();
 
-  function PLCCrowdsale(address tokenAddress, address refundVaultAddress, address devMultisigAddress, address[] _reserveWallet) {
-    require(startTime >= now);
+  function PLCCrowdsale(
+    address _token,
+    address _refundVault,
+    address _devMultisig,
+    address[5] _reserveWallet,
+    uint64[6] _timelines,
+    uint256 _maxEtherCap,
+    uint256 _minEtherCap) {
 
-    token = PLC(tokenAddress);
-    vault = RefundVault(refundVaultAddress);
-    devMultisig = devMultisigAddress;
+    require(_timelines[0] >= now);
+
+    token = PLC(_token);
+    vault = RefundVault(_refundVault);
+    devMultisig = _devMultisig;
     reserveWallet = _reserveWallet;
+
+    startTime = _timelines[0];
+    endTime = _timelines[5];
+
+    for(uint8 i=0;i<5;i++){
+      deadlines[i] = _timelines[i+1];
+    }
+
+    maxEtherCap = _maxEtherCap;
+    minEtherCap = _minEtherCap;
 
     /*token = createTokenContract();
     vault = new RefundVault();*/
@@ -229,7 +248,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
 
   function finalizeWhenForked() onlyOwner whenPaused {
     require(!isFinalized);
-    
+
     vault.enableRefunds();
     token.finishMinting();
 

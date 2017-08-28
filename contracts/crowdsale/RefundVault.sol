@@ -18,13 +18,13 @@ contract RefundVault is Ownable, SafeMath{
 
   address public devMultisig;
 
-  address[] public reserveWallet;
+  address[5] public reserveWallet;
 
   event Closed();
   event RefundsEnabled();
   event Refunded(address indexed beneficiary, uint256 weiAmount);
 
-  function RefundVault(address _devMultiSig, address[] _reserveWallet) {
+  function RefundVault(address _devMultiSig, address[5] _reserveWallet) {
     state = State.Active;
     devMultisig = _devMultiSig;
     reserveWallet = _reserveWallet;
