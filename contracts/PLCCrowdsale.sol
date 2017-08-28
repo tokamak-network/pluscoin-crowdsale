@@ -227,6 +227,11 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
     token.finishMinting();
   }
 
+  function finalizeWhenForked() onlyOwner whenPaused {
+    vault.enableRefunds();
+    token.finishMinting();
+  }
+
   // if crowdsale is unsuccessful, investors can claim refunds here
   function claimRefund() {
     require(isFinalized);
