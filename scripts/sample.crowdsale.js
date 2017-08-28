@@ -17,7 +17,7 @@ const provider = web3.currentProvider;
 // global variables / funcs
 const eth = web3.eth;
 const ether = v => web3.toWei(v);
-const wei = v => (new web3.BigNumber(v)).mul(1e18).toExponential();
+const wei = v => (new web3.BigNumber(v)).toExponential();
 
 const accounts = eth.accounts;
 
@@ -72,6 +72,11 @@ vault: \t\t\t ${ wei(await eth.getBalance(vault.address)) }
 \t\t[Token Balance]
 investor: \t\t ${ wei(await token.balanceOf(investor)) }
 `);
+
+    if (state.finalized) {
+    }
+
+    console.log();
 
     console.log();
     console.log();
