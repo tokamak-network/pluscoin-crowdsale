@@ -16,6 +16,7 @@
     "moment": "^2.18.1"
   },
   "dependencies": {
+    "axios": "^0.16.2",
     "bip39": "^2.4.0",
     "ethereumjs-wallet": "^0.6.0",
     "truffle-contract": "^2.0.5",
