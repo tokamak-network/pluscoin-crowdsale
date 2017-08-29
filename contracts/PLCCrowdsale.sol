@@ -29,8 +29,6 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
   uint256 presaleRate = 500;
 	uint8[5] public rates = [240, 230, 220, 210, 200];
 
-
-
   // amount of raised money in wei
   uint256 public weiRaised;
 
@@ -95,9 +93,11 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
     startTime = _timelines[0];
     endTime = _timelines[5];
 
-    for(uint8 i=0;i<5;i++){
-      deadlines[i] = _timelines[i+1];
-    }
+    deadlines[0] = _timelines[1];
+    deadlines[1] = _timelines[2];
+    deadlines[2] = _timelines[3];
+    deadlines[3] = _timelines[4];
+    deadlines[4] = _timelines[5];
 
     maxEtherCap = _maxEtherCap;
     minEtherCap = _minEtherCap;
