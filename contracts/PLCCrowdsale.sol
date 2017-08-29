@@ -29,8 +29,6 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
   uint256 presaleRate = 500;
 	uint8[5] public rates = [240, 230, 220, 210, 200];
 
-
-
   // amount of raised money in wei
   uint256 public weiRaised;
 

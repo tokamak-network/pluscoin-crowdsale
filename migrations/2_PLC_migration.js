@@ -17,13 +17,14 @@ module.exports = async function (deployer, network, accounts) {
     // const timelines = [1506384000, 1506643200, 1506902400, 1507161600, 1507420800, 1507593600];
 
     // for demo
+    const step = network === "development" ? "seconds" : "minutes";
     const timelines = [
-      moment().add(10, "second").unix(), // start
-      moment().add(15, "second").unix(),
-      moment().add(20, "second").unix(),
-      moment().add(25, "second").unix(),
-      moment().add(30, "second").unix(),
-      moment().add(35, "second").unix(), // end
+      moment().add(10, step).unix(), // start
+      moment().add(15, step).unix(),
+      moment().add(20, step).unix(),
+      moment().add(25, step).unix(),
+      moment().add(30, step).unix(),
+      moment().add(35, step).unix(), // end
     ];
     const maxEtherCap = 5 * 10 ** 18;
     const minEtherCap = 1 * 10 ** 18;
