@@ -15,22 +15,22 @@ module.exports = async function (deployer, network, accounts) {
     const maxEtherCap = 100000 * 10 ** 18;
     const minEtherCap = 30000 * 10 ** 18;
 
-    const start = moment.utc("2017-09-26").unix();
+    const startTime = moment.utc("2017-09-26").unix();
     const startDate = moment.utc("2017-09-26");
-    const end = moment.utc("2017-10-10").unix();
-    
+    const endTime = moment.utc("2017-10-10").unix();
+
     const firstBonusDeadline = startDate.add(1,'day').unix();
-    const secondBonusDeadline = startDate.add(3,'day').unix();
-    const thirdBonusDeadline = startDate.add(6,'day').unix();
-    const fourthBonusDeadline = startDate.add(9,'day').unix();
+    const secondBonusDeadline = startDate.add(2,'day').unix();
+    const thirdBonusDeadline = startDate.add(3,'day').unix();
+    const fourthBonusDeadline = startDate.add(3,'day').unix();
 
     const timelines = [
-      start,
+      startTime,
       firstBonusDeadline,
       secondBonusDeadline,
       thirdBonusDeadline,
       fourthBonusDeadline,
-      end
+      endTime
     ];
 
     // for demo
