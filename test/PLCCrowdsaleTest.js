@@ -42,6 +42,9 @@ contract(
     let now, startTime, endTime;
     let beforeStartTime, afterEndTime, afterStartTime;
 
+    let firstBonusDeadline, secondBonusDeadline, thirdBonusDeadline, fourthBonusDeadline;
+    let startDate;
+
     let timelines, presaleRate, rates;
 
     let maxGuaranteedLimit, maxCallFrequency;
@@ -58,7 +61,24 @@ contract(
         reserveWallet4,
       ];
 
-      timelines = [ 1506384000, 1506643200, 1506902400, 1507161600, 1507420800, 1507593600 ];
+      startTime = moment.utc("2017-09-26").unix();
+    startDate = moment.utc("2017-09-26");
+      endTime = moment.utc("2017-10-10").unix();
+
+      firstBonusDeadline = startDate.add(1,'day').unix();
+      secondBonusDeadline = startDate.add(2,'day').unix();
+      thirdBonusDeadline = startDate.add(3,'day').unix();
+      fourthBonusDeadline = startDate.add(3,'day').unix();
+
+      timelines = [
+        startTime,
+        firstBonusDeadline,
+        secondBonusDeadline,
+        thirdBonusDeadline,
+        fourthBonusDeadline,
+        endTime
+      ];
+
       presaleRate = 500;
       rates = [ 240, 230, 220, 210, 200 ];
 
@@ -100,18 +120,19 @@ contract(
 
       now = moment().unix();
 
-      startTime = await crowdsale.startTime();
-      endTime = await crowdsale.endTime();
-
-      beforeStartTime = startTime.toNumber() - duration.seconds(100);
-      afterStartTime = startTime.toNumber() + duration.seconds(1);
-      afterEndTime = endTime.toNumber() + duration.seconds(1);
+      beforeStartTime = startTime - duration.seconds(100);
+      afterStartTime = startTime + duration.seconds(1);
+      afterEndTime = endTime + duration.seconds(1);
 
       console.log(`
 ------------------------------
 
 \t[TIME]
 startTime:\t\t${ startTime }
+firstBonusDeadline:\t${ firstBonusDeadline }
+secondBonusDeadline:\t${ secondBonusDeadline }
+thirdBonusDeadline:\t${ thirdBonusDeadline }
+fourthBonusDeadline:\t${ fourthBonusDeadline }
 endTime:\t\t${ endTime }
 
 beforeStartTime:\t${ beforeStartTime }
@@ -149,7 +170,7 @@ now:\t\t\t${ now }
           .should.be.rejectedWith(EVMThrow);
 
         await crowdsale
-          .buyTokens(investor, { from: investor, value: ether(1) })
+          .buyTokens({ from: investor, value: ether(1) })
           .should.be.rejectedWith(EVMThrow);
       });
 
@@ -159,7 +180,7 @@ now:\t\t\t${ now }
 
         const investmentAmount = ether(1);
 
-        await crowdsale.buyTokens(investor, {
+        await crowdsale.buyTokens({
           value: investmentAmount,
           from: investor,
         }).should.be.rejectedWith(EVMThrow);
@@ -173,7 +194,7 @@ now:\t\t\t${ now }
         await crowdsale.register(investor)
           .should.be.fulfilled;
 
-        await crowdsale.buyTokens(investor, {
+        await crowdsale.buyTokens({
           value: investmentAmount,
           from: investor,
         }).should.be.fulfilled;
@@ -197,20 +218,20 @@ now:\t\t\t${ now }
 
           expectedTokenAmount = expectedTokenAmount.add(investmentAmount.mul(rate));
 
-          // proceed 20 block
-          for (const i of Array(20)) {
-            await advanceBlock();
-          }
-
-          await crowdsale.buyTokens(investor, {
-            value: investmentAmount,
-            from: investor,
-          }).should.be.fulfilled;
-
-          (await token.balanceOf(investor))
-            .should.be.bignumber.equal(expectedTokenAmount);
-          (await token.totalSupply())
-            .should.be.bignumber.equal(expectedTokenAmount);
+          // // proceed 20 block
+          // for (const i of Array(20)) {
+          //   await advanceBlock();
+          // }
+          //
+          // await crowdsale.buyTokens({
+          //   value: investmentAmount,
+          //   from: investor,
+          // }).should.be.fulfilled;
+          //
+          // (await token.balanceOf(investor))
+          //   .should.be.bignumber.equal(expectedTokenAmount);
+          // (await token.totalSupply())
+          //   .should.be.bignumber.equal(expectedTokenAmount);
         }
       });
 
@@ -225,7 +246,7 @@ now:\t\t\t${ now }
         await crowdsale.register(investor)
           .should.be.fulfilled;
 
-        await crowdsale.buyTokens(investor, {
+        await crowdsale.buyTokens({
           value: investmentAmount,
           from: investor,
         }).should.be.fulfilled;
@@ -251,13 +272,13 @@ now:\t\t\t${ now }
         await crowdsale.register(investor)
           .should.be.fulfilled;
 
-        await crowdsale.buyTokens(investor, {
+        await crowdsale.buyTokens({
           value: investmentAmount,
           from: investor,
         }).should.be.fulfilled;
 
         await crowdsale
-          .buyTokens(investor, {
+          .buyTokens({
             value: investmentAmount,
             from: investor,
           })
@@ -270,7 +291,7 @@ now:\t\t\t${ now }
           await crowdsale.register(account)
             .should.be.fulfilled;
 
-          await crowdsale.buyTokens(account, {
+          await crowdsale.buyTokens({
             value: ether(5000),
             from: account,
           }).should.be.fulfilled;
@@ -282,7 +303,7 @@ now:\t\t\t${ now }
           .should.be.fulfilled;
 
         await crowdsale
-          .buyTokens(investor, {
+          .buyTokens({
             value: investmentAmount,
             from: investor,
           })
@@ -298,7 +319,7 @@ now:\t\t\t${ now }
           await crowdsale.register(account)
             .should.be.fulfilled;
 
-          await crowdsale.buyTokens(account, {
+          await crowdsale.buyTokens({
             value: ether(4995),
             from: account,
           }).should.be.fulfilled;
@@ -312,7 +333,7 @@ now:\t\t\t${ now }
         await crowdsale.register(investor)
           .should.be.fulfilled;
 
-        await crowdsale.buyTokens(investor, {
+        await crowdsale.buyTokens({
           value: investmentAmount,
           from: investor,
         }).should.be.fulfilled;
@@ -340,7 +361,7 @@ now:\t\t\t${ now }
           await crowdsale.register(account)
             .should.be.fulfilled;
 
-          await crowdsale.buyTokens(account, {
+          await crowdsale.buyTokens({
             value: investmentAmount,
             from: account,
           }).should.be.fulfilled;
@@ -366,7 +387,7 @@ now:\t\t\t${ now }
           await crowdsale.register(account)
             .should.be.fulfilled;
 
-          await crowdsale.buyTokens(account, {
+          await crowdsale.buyTokens({
             value: investmentAmount,
             from: account,
           })
@@ -378,7 +399,7 @@ now:\t\t\t${ now }
         await crowdsale.send(ether(1))
           .should.be.rejectedWith(EVMThrow);
         await crowdsale
-          .buyTokens(investor, { value: ether(1), from: investor })
+          .buyTokens({ value: ether(1), from: investor })
           .should.be.rejectedWith(EVMThrow);
       });
 
@@ -389,7 +410,7 @@ now:\t\t\t${ now }
         await crowdsale.registerWithPreSale(investor, presaledAmount)
           .should.be.fulfilled;
 
-        await crowdsale.buyTokens(investor, {
+        await crowdsale.buyTokens({
           value: presaledAmount,
           from: investor,
         })
@@ -412,7 +433,7 @@ now:\t\t\t${ now }
         await crowdsale.registerWithPreSale(investor, presaledAmount)
           .should.be.fulfilled;
 
-        await crowdsale.buyTokens(investor, {
+        await crowdsale.buyTokens({
           value: presaledAmount,
           from: investor,
         })
@@ -428,7 +449,7 @@ now:\t\t\t${ now }
           await advanceBlock();
         }
 
-        await crowdsale.buyTokens(investor, {
+        await crowdsale.buyTokens({
           value: investmentAmount,
           from: investor,
         })
@@ -451,7 +472,7 @@ now:\t\t\t${ now }
         await crowdsale.registerWithPreSale(investor, presaledAmount)
           .should.be.fulfilled;
 
-        await crowdsale.buyTokens(investor, {
+        await crowdsale.buyTokens({
           value: investmentAmount,
           from: investor,
         })
@@ -468,7 +489,7 @@ now:\t\t\t${ now }
           await advanceBlock();
         }
 
-        await crowdsale.buyTokens(investor, {
+        await crowdsale.buyTokens({
           value: presaledAmount,
           from: investor,
         })
@@ -493,7 +514,7 @@ now:\t\t\t${ now }
         await crowdsale.pause()
           .should.be.fulfilled;
 
-        await crowdsale.buyTokens(investor, {
+        await crowdsale.buyTokens({
           value: investmentAmount,
           from: investor,
         })
@@ -518,7 +539,7 @@ now:\t\t\t${ now }
           await crowdsale.register(account)
             .should.be.fulfilled;
 
-          await crowdsale.buyTokens(account, {
+          await crowdsale.buyTokens({
             value: eachInvestmentAmount,
             from: account,
           }).should.be.fulfilled;
@@ -553,57 +574,8 @@ now:\t\t\t${ now }
       });
 
       // endTime
-      // it("can be finalized after endTime", async () => {
-      //   const numInvestor = 8;
-      //   const eachInvestmentAmount = ether(5000);
-      //   const totalInvestmentAmount = eachInvestmentAmount.mul(numInvestor);
-      //
-      //   // 8 accounts, total 40,000 ether
-      //   for (const account of accounts.slice(0, numInvestor)) {
-      //     await crowdsale.register(account)
-      //       .should.be.fulfilled;
-      //
-      //     await crowdsale.buyTokens(account, {
-      //       value: eachInvestmentAmount,
-      //       from: account,
-      //     })
-      //       .should.be.fulfilled;
-      //   }
-      //
-      //   await increaseTimeTo(afterEndTime);
-      //
-      //   await crowdsale.finalize()
-      //     .should.be.fulfilled;
-      //
-      //   // Ether Distribution
-      //   const expectedDevBalance = totalInvestmentAmount.div(10);
-      //   const expectedEachReserveBalance = totalInvestmentAmount.mul(18).div(100);
-      //
-      //   (await eth.getBalance(multiSig.address))
-      //     .should.be.bignumber.equal(expectedDevBalance);
-      //
-      //   reserveWallet.forEach(async (wallet) => {
-      //     (await eth.getBalance(wallet))
-      //       .should.be.bignumber.equal(expectedEachReserveBalance);
-      //   });
-      //
-      //   // Token Distribution
-      //   const totalSupply = await token.totalSupply();
-      //   const expectedDevTokenBalance = totalSupply.mul(10).div(100);
-      //   const expectedEachReserveTokenBalance = totalSupply.mul(2).div(100);
-      //
-      //   (await token.balanceOf(multiSig.address))
-      //     .should.be.bignumber.equal(expectedDevTokenBalance);
-      //
-      //   for (let i = 0; i < 5; i++) {
-      //     (await token.balanceOf(reserveWallet[ i ]))
-      //       .should.be.bignumber.equal(expectedEachReserveTokenBalance);
-      //   }
-      // });
-
-      // endTime 2
-      it("can be finalized after endTime (when minEtherCap is not reached)", async () => {
-        const numInvestor = 4;
+      it("can be finalized after endTime", async () => {
+        const numInvestor = 8;
         const eachInvestmentAmount = ether(5000);
         const totalInvestmentAmount = eachInvestmentAmount.mul(numInvestor);
 
@@ -612,37 +584,87 @@ now:\t\t\t${ now }
           await crowdsale.register(account)
             .should.be.fulfilled;
 
-          await crowdsale.buyTokens(account, {
+          await crowdsale.buyTokens({
             value: eachInvestmentAmount,
             from: account,
-          }).should.be.fulfilled;
+          })
+            .should.be.fulfilled;
         }
 
         await increaseTimeTo(afterEndTime);
 
-        await crowdsale.finalize().should.be.fulfilled;
+        await crowdsale.finalize()
+          .should.be.fulfilled;
 
         // Ether Distribution
-        const expectedDevBalance = new BigNumber(0);
-        const expectedEachReserveBalance = new BigNumber(0);
+        const expectedDevBalance = totalInvestmentAmount.div(10);
+        const expectedEachReserveBalance = totalInvestmentAmount.mul(18).div(100);
 
-        (await eth.getBalance(multiSig.address)).should.be.bignumber.equal(expectedDevBalance);
+        (await eth.getBalance(multiSig.address))
+          .should.be.bignumber.equal(expectedDevBalance);
+
         reserveWallet.forEach(async (wallet) => {
-          (await eth.getBalance(wallet)).should.be.bignumber.equal(expectedEachReserveBalance);
+          (await eth.getBalance(wallet))
+            .should.be.bignumber.equal(expectedEachReserveBalance);
         });
 
-        // refund claim
-        for (const account of accounts.slice(0, numInvestor)) {
-          const balanceBeforeRefund = await eth.getBalance(account);
-          await crowdsale.claimRefund({ from: account }).should.be.fulfilled;
-          const balanceAfterRefund = await eth.getBalance(account);
+        // Token Distribution
+        const totalSupply = await token.totalSupply();
+        const expectedDevTokenBalance = totalSupply.mul(20).div(100).toNumber();
+        const expectedEachReserveTokenBalance = totalSupply.mul(2).div(100).toNumber();
 
-          (balanceAfterRefund - balanceBeforeRefund).should.be.within(
-            ether(4999).toNumber(),
-            ether(5000).toNumber(),
-          );
+
+        (await token.balanceOf(multiSig.address)).toNumber()
+          .should.be.within(expectedDevTokenBalance-10*10**17,expectedDevTokenBalance+10*10**17);
+
+        for (let i = 0; i < 5; i++) {
+          (await token.balanceOf(reserveWallet[ i ])).toNumber()
+            .should.be.within(expectedEachReserveTokenBalance-10*10**17,expectedEachReserveTokenBalance+10*10**17);
         }
       });
+
+      // // endTime 2
+      // it("can be finalized after endTime (when minEtherCap is not reached)", async () => {
+      //   const numInvestor = 4;
+      //   const eachInvestmentAmount = ether(5000);
+      //   const totalInvestmentAmount = eachInvestmentAmount.mul(numInvestor);
+      //
+      //   // 8 accounts, total 40,000 ether
+      //   for (const account of accounts.slice(0, numInvestor)) {
+      //     await crowdsale.register(account)
+      //       .should.be.fulfilled;
+      //
+      //     await crowdsale.buyTokens({
+      //       value: eachInvestmentAmount,
+      //       from: account,
+      //     }).should.be.fulfilled;
+      //   }
+      //
+      //   await increaseTimeTo(afterEndTime);
+      //
+      //   await crowdsale.finalize().should.be.fulfilled;
+      //
+      //   // Ether Distribution
+      //   const expectedDevBalance = new BigNumber(0);
+      //   const expectedEachReserveBalance = new BigNumber(0);
+      //
+      //   (await eth.getBalance(multiSig.address)).should.be.bignumber.equal(expectedDevBalance);
+      //   reserveWallet.forEach(async (wallet) => {
+      //     (await eth.getBalance(wallet)).should.be.bignumber.equal(expectedEachReserveBalance);
+      //   });
+
+      //   // refund claim
+      //   for (const account of accounts.slice(0, numInvestor)) {
+      //     const balanceBeforeRefund = await eth.getBalance(account);
+      //     await crowdsale.claimRefund({ from: account }).should.be.fulfilled;
+      //     const balanceAfterRefund = await eth.getBalance(account);
+      //
+      //     (balanceAfterRefund - balanceBeforeRefund).should.be.within(
+      //       ether(4999).toNumber(),
+      //       ether(5000).toNumber(),
+      //     );
+      //   }
+      // });
 
       // afterEndTime
       it("should reject payments after end", async () => {
@@ -652,7 +674,7 @@ now:\t\t\t${ now }
         await crowdsale.register(investor)
           .should.be.fulfilled;
 
-        await crowdsale.buyTokens(investor, { value: ether(1), from: investor })
+        await crowdsale.buyTokens({ value: ether(1), from: investor })
           .should.be.rejectedWith(EVMThrow);
       });
 
