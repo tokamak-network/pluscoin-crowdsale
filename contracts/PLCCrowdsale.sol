@@ -115,16 +115,16 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
 
   // fallback function can be used to buy tokens
   function () payable {
-    buyTokens(msg.sender);
+    buyTokens();
   }
 
 
   // low level token purchase function
-  function buyTokens(address beneficiary) payable whenNotPaused canBuyInBlock onlyRegistered(msg.sender) {
+  function buyTokens() payable whenNotPaused canBuyInBlock onlyRegistered(msg.sender) {
     uint256 guaranteedLimit = maxGuaranteedLimit + registeredAmount[msg.sender];
 
     // check validity
-    require(beneficiary != 0x00);
+    require(msg.sender != 0x00);
     require(validPurchase());
     require(buyerFunded[msg.sender] < guaranteedLimit);
 
@@ -145,8 +145,8 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
 
     // ether for presale
     uint256 forPreSale;
-    if (buyerFunded[beneficiary] < registeredAmount[beneficiary]) {
-      forPreSale = min256(toFund, sub(registeredAmount[beneficiary], buyerFunded[beneficiary]));
+    if (buyerFunded[msg.sender] < registeredAmount[msg.sender]) {
+      forPreSale = min256(toFund, sub(registeredAmount[msg.sender], buyerFunded[msg.sender]));
     }
 
     // ether for crowdsale
@@ -170,11 +170,13 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
     if (toFund > 0) {
       // update state
       weiRaised = add(weiRaised, toFund);
-      buyerFunded[beneficiary] = add(buyerFunded[beneficiary], toFund);
+      buyerFunded[msg.sender] = add(buyerFunded[msg.sender], toFund);
 
-      token.mint(beneficiary, tokens);
+      //1 week lock
+      token.mint(address(this), tokens);
+      token.grantVestedTokens(msg.sender, tokens, uint64(now), uint64(now + 1 weeks), uint64(now + 1 weeks),false,false);
 
-      TokenPurchase(msg.sender, beneficiary, toFund, tokens);
+      TokenPurchase(msg.sender, msg.sender, toFund, tokens);
 
       forwardFunds(toFund);
     }
@@ -214,7 +216,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
 
   // should be called after crowdsale ends, to do
   // some extra finalization work
-  function finalize() onlyOwner {
+  function finalize() {
     require(!isFinalized);
     require(hasEnded() || maxReached());
 
@@ -233,13 +235,13 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
       uint256 totalToken = token.totalSupply();
 
       // dev team 10%
-      uint256 devAmount = div(mul(totalToken, 10), 80);
+      uint256 devAmount = div(mul(totalToken, 20), 70);
       token.mint(address(this), devAmount);
       token.grantVestedTokens(devMultisig, devAmount, uint64(now), uint64(now + 1 years), uint64(now + 1 years),false,false);
 
       // reserve 10%
       for(uint8 i = 0; i < 5; i++){
-        token.mint(reserveWallet[i], div(mul(totalToken,2),80));
+        token.mint(reserveWallet[i], div(mul(totalToken,2),70));
       }
 
     } else {

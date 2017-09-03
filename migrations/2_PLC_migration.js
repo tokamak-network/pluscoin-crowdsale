@@ -12,22 +12,40 @@ module.exports = async function (deployer, network, accounts) {
   accounts.forEach((account, i) => console.log(`[${ i }]  ${ account }`));
 
   try {
-    // const maxEtherCap = 100000 * 10 ** 18;
-    // const minEtherCap = 30000 * 10 ** 18;
-    // const timelines = [1506384000, 1506643200, 1506902400, 1507161600, 1507420800, 1507593600];
+    const maxEtherCap = 100000 * 10 ** 18;
+    const minEtherCap = 30000 * 10 ** 18;
+
+    const start = moment.utc("2017-09-26").unix();
+    const startDate = moment.utc("2017-09-26");
+    const end = moment.utc("2017-10-10").unix();
+    
+    const firstBonusDeadline = startDate.add(1,'day').unix();
+    const secondBonusDeadline = startDate.add(3,'day').unix();
+    const thirdBonusDeadline = startDate.add(6,'day').unix();
+    const fourthBonusDeadline = startDate.add(9,'day').unix();
+
+    const timelines = [
+      start,
+      firstBonusDeadline,
+      secondBonusDeadline,
+      thirdBonusDeadline,
+      fourthBonusDeadline,
+      end
+    ];
 
     // for demo
-    const step = network === "development" ? "seconds" : "minutes";
-    const timelines = [
-      moment().add(10, step).unix(), // start
-      moment().add(15, step).unix(),
-      moment().add(20, step).unix(),
-      moment().add(25, step).unix(),
-      moment().add(30, step).unix(),
-      moment().add(35, step).unix(), // end
-    ];
-    const maxEtherCap = 5 * 10 ** 18;
-    const minEtherCap = 1 * 10 ** 18;
+
+    // const step = network === "development" ? "seconds" : "minutes";
+    // const timelines = [
+    //   moment().add(10, step).unix(), // start
+    //   moment().add(15, step).unix(),
+    //   moment().add(20, step).unix(),
+    //   moment().add(25, step).unix(),
+    //   moment().add(30, step).unix(),
+    //   moment().add(35, step).unix(), // end
+    // ];
+    // const maxEtherCap = 5 * 10 ** 18;
+    // const minEtherCap = 1 * 10 ** 18;
 
     const reserveWallet = [
       "0x922aa0d0e720caf10bcd7a02be187635a6f36ab0",
