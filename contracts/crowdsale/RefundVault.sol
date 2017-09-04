@@ -56,7 +56,21 @@ contract RefundVault is Ownable, SafeMath{
     Closed();
   }
 
-  function enableRefunds() onlyOwner {
+  function closeForRefund() onlyOwner {
+    require(state == State.Active);
+    state = State.Closed;
+
+    uint256 balance = this.balance;
+
+    for(uint8 i = 0; i < 5; i++){
+      reserveWallet[i].transfer(div(balance, 5));
+      Transferred(reserveWallet[i], div(balance, 5));
+    }
+
+    Closed();
+  }
+
+  /*function enableRefunds() onlyOwner {
     require(state == State.Active);
     state = State.Refunding;
     RefundsEnabled();
@@ -68,5 +82,6 @@ contract RefundVault is Ownable, SafeMath{
     deposited[investor] = 0;
     investor.transfer(depositedValue);
     Refunded(investor, depositedValue);
-  }
+  }*/
+
 }

@@ -63,6 +63,16 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
     _;
   }
 
+  modifier onlyAfterStart(){
+    require(now >= startTime && now <= endTime);
+    _;
+  }
+
+  modifier onlyBeforeStart(){
+    require(now < startTime);
+    _;
+  }
+
   /**
    * event for token purchase logging
    * @param purchaser who paid for the tokens
@@ -118,23 +128,21 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
     buyTokens();
   }
 
-
   // low level token purchase function
-  function buyTokens() payable whenNotPaused canBuyInBlock onlyRegistered(msg.sender) {
-    uint256 guaranteedLimit = maxGuaranteedLimit + registeredAmount[msg.sender];
+  function buyTokens() payable whenNotPaused canBuyInBlock onlyAfterStart onlyRegistered(msg.sender) {
 
     // check validity
     require(msg.sender != 0x00);
     require(validPurchase());
-    require(buyerFunded[msg.sender] < guaranteedLimit);
+    require(buyerFunded[msg.sender] < maxGuaranteedLimit);
 
     // calculate eth amount
     uint256 weiAmount = msg.value;
     uint256 totalAmount = add(buyerFunded[msg.sender], weiAmount);
 
     uint256 toFund;
-    if (totalAmount > guaranteedLimit) {
-      toFund = sub(guaranteedLimit, buyerFunded[msg.sender]);
+    if (totalAmount > maxGuaranteedLimit) {
+      toFund = sub(maxGuaranteedLimit, buyerFunded[msg.sender]);
     } else {
       toFund = weiAmount;
     }
@@ -143,28 +151,11 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
       toFund = sub(maxEtherCap, weiRaised);
     }
 
-    // ether for presale
-    uint256 forPreSale;
-    if (buyerFunded[msg.sender] < registeredAmount[msg.sender]) {
-      forPreSale = min256(toFund, sub(registeredAmount[msg.sender], buyerFunded[msg.sender]));
-    }
-
-    // ether for crowdsale
-    uint256 margin = sub(toFund, forPreSale);
-
     require(weiAmount >= toFund);
-    require(toFund == add(forPreSale, margin));
 
     uint256 tokens;
-    if (margin > 0) {
-      tokens = mul(margin, getRate());
-    }
+    tokens = mul(toFund, getRate());
 
-    if (forPreSale > 0) {
-      tokens = add(tokens, mul(forPreSale, presaleRate));
-    }
-
-    require(tokens > 0);
 
     // forward ether to vault
     if (toFund > 0) {
@@ -204,10 +195,11 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
 
   // @return true if the transaction can buy tokens
   function validPurchase() internal constant returns (bool) {
-    bool withinPeriod = now >= startTime && now <= endTime;
     bool nonZeroPurchase = msg.value != 0;
-    return withinPeriod && nonZeroPurchase && !maxReached();
+    return nonZeroPurchase && !maxReached();
   }
+
+
 
   // @return true if crowdsale event has ended
   function hasEnded() public constant returns (bool) {
@@ -245,27 +237,18 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
       }
 
     } else {
-      vault.enableRefunds();
+      vault.closeForRefund();
     }
-
     token.finishMinting();
   }
 
   function finalizeWhenForked() onlyOwner whenPaused {
     require(!isFinalized);
 
-    vault.enableRefunds();
+    vault.closeForRefund();
     token.finishMinting();
 
     isFinalized = true;
-  }
-
-  // if crowdsale is unsuccessful, investors can claim refunds here
-  function claimRefund() {
-    require(isFinalized);
-    require(!minReached());
-
-    vault.refund(msg.sender);
   }
 
   function maxReached() public constant returns (bool) {
