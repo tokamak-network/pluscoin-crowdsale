@@ -1,11 +1,10 @@
 require("babel-register");
 require("babel-polyfill");
 
-
 // SNT
 const HDWalletProvider = require("truffle-hdwallet-provider");
 
-require('dotenv').config();
+require("dotenv").config();
 
 const mnemonic = process.env.MNEMONIC || "onther metaps onther metaps onther metaps onther metaps onther metaps onther metaps ";
 const providerUrl = "https://ropsten.infura.io";
@@ -18,7 +17,7 @@ module.exports = {
       host: "localhost",
       port: 8545,
       network_id: "*",
-      gas: 4000000,
+      gas: 4500000,
     },
     ropsten: {
       network_id: 3,

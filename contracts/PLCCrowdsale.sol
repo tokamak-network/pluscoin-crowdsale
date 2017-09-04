@@ -15,7 +15,10 @@ import './KYC.sol';
  * on a token per ETH rate. Funds collected are forwarded to a wallet
  * as they arrive.
  */
-contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
+contract PLCCrowdsale is Ownable, SafeMath, Pausable {
+
+  // token registery contract
+  KYC public kyc;
 
   // The token being sold
   PLC public token;
@@ -35,8 +38,14 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
   // amount of ether buyer can buy
   uint256 constant public maxGuaranteedLimit = 5000 ether;
 
+  // amount of ether presale buyer can buy
+  mapping (address => uint256) public presaleGuaranteedLimit;
+
   // amount of ether funded for each buyer
   mapping (address => uint256) public buyerFunded;
+
+  // amount of ether funded for each buyer in presale phase
+  mapping (address => uint256) public presaleBuyerFunded;
 
   // buyable interval in block number 20
   uint256 constant public maxCallFrequency = 20;
@@ -73,6 +82,10 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
     _;
   }
 
+  modifier onlyRegistered(address _addr) {
+    require(kyc.isRegistered(_addr));
+  }
+
   /**
    * event for token purchase logging
    * @param purchaser who paid for the tokens
@@ -83,8 +96,11 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
   event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
   event Finalized();
   event ForTest();
+  event RegisterPresale(address indexed presaleInvestor, uint256 presaleAmount);
+  event PresaleTokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
 
   function PLCCrowdsale(
+    address _kyc,
     address _token,
     address _refundVault,
     address _devMultisig,
@@ -93,15 +109,17 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
     uint256 _maxEtherCap,
     uint256 _minEtherCap) {
 
-    require(_timelines[0] >= now);
+    // require(_timelines[0] >= now);
 
+    kyc   = KYC(_kyc);
     token = PLC(_token);
     vault = RefundVault(_refundVault);
-    devMultisig = _devMultisig;
+
+    devMultisig   = _devMultisig;
     reserveWallet = _reserveWallet;
 
-    startTime = _timelines[0];
-    endTime = _timelines[5];
+    startTime    = _timelines[0];
+    endTime      = _timelines[5];
 
     deadlines[0] = _timelines[1];
     deadlines[1] = _timelines[2];
@@ -109,30 +127,79 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
     deadlines[3] = _timelines[4];
     deadlines[4] = _timelines[5];
 
-    maxEtherCap = _maxEtherCap;
-    minEtherCap = _minEtherCap;
+    maxEtherCap  = _maxEtherCap;
+    minEtherCap  = _minEtherCap;
 
-    /*token = createTokenContract();
-    vault = new RefundVault();*/
   }
-
-
-  // creates the token to be sold.
-  function createTokenContract() internal returns (PLC) {
-    return new PLC();
-  }
-
 
   // fallback function can be used to buy tokens
   function () payable {
     buyTokens();
   }
 
+  function registerPresale(address presaleInvestor, uint256 presaleAmount) onlyBeforeStart {
+    presaleGuaranteedLimit[presaleInvestor] = presaleAmount;
+
+    RegisterPresale(presaleInvestor, presaleAmount);
+  }
+
+  function buyPresaleTokens(address beneficiary) payable whenNotPaused onlyBeforeStart {
+    // check validity
+    require(beneficiary != 0x00);
+    require(validPurchase());
+    uint guaranteedLimit = presaleGuaranteedLimit[beneficiary];
+    require(guaranteedLimit > 0);
+
+    // calculate eth amount
+    uint256 weiAmount = msg.value;
+    uint256 totalAmount = add(presaleBuyerFunded[msg.sender], weiAmount);
+
+    uint256 toFund;
+    if (totalAmount > guaranteedLimit) {
+      toFund = sub(guaranteedLimit, presaleBuyerFunded[msg.sender]);
+    } else {
+      toFund = weiAmount;
+    }
+
+    require(weiAmount >= toFund);
+
+    uint256 tokens = mul(toFund, presaleRate);
+
+    // forward ether to vault
+    if (toFund > 0) {
+      // update state
+      weiRaised = add(weiRaised, toFund);
+      presaleBuyerFunded[msg.sender] = add(presaleBuyerFunded[msg.sender], toFund);
+
+      //1 week lock
+      token.mint(address(this), tokens);
+      token.grantVestedTokens(
+        msg.sender,
+        tokens,
+        uint64(endTime),
+        uint64(endTime + 1 weeks),
+        uint64(endTime + 1 weeks),
+        false,
+        false);
+
+      PresaleTokenPurchase(msg.sender, beneficiary, toFund, tokens);
+
+      forwardFunds(toFund);
+    }
+
+    uint256 toReturn = sub(weiAmount, toFund);
+
+    // return ether if needed
+    if (toReturn > 0) {
+      msg.sender.transfer(toReturn);
+    }
+
+  }
+
   // low level token purchase function
   function buyTokens() payable whenNotPaused canBuyInBlock onlyAfterStart onlyRegistered(msg.sender) {
 
     // check validity
-    require(msg.sender != 0x00);
     require(validPurchase());
     require(buyerFunded[msg.sender] < maxGuaranteedLimit);
 
@@ -153,9 +220,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
 
     require(weiAmount >= toFund);
 
-    uint256 tokens;
-    tokens = mul(toFund, getRate());
-
+    uint256 tokens = mul(toFund, getRate());
 
     // forward ether to vault
     if (toFund > 0) {
@@ -165,7 +230,14 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
 
       //1 week lock
       token.mint(address(this), tokens);
-      token.grantVestedTokens(msg.sender, tokens, uint64(now), uint64(now + 1 weeks), uint64(now + 1 weeks),false,false);
+      token.grantVestedTokens(
+        msg.sender,
+        tokens,
+        uint64(endTime),
+        uint64(endTime + 1 weeks),
+        uint64(endTime + 1 weeks),
+        false,
+        false);
 
       TokenPurchase(msg.sender, msg.sender, toFund, tokens);
 
@@ -237,7 +309,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
       }
 
     } else {
-      vault.closeForRefund();
+      vault.enableRefunds();
     }
     token.finishMinting();
   }
@@ -245,10 +317,18 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
   function finalizeWhenForked() onlyOwner whenPaused {
     require(!isFinalized);
 
-    vault.closeForRefund();
+    vault.enableRefunds();
     token.finishMinting();
 
     isFinalized = true;
+  }
+
+  // if crowdsale is unsuccessful, investors can claim refunds here
+  function claimRefund(address investor) {
+    require(isFinalized);
+    require(!minReached());
+
+    vault.refund(investor);
   }
 
   function maxReached() public constant returns (bool) {

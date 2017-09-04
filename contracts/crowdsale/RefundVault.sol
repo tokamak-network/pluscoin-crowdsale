@@ -14,6 +14,7 @@ contract RefundVault is Ownable, SafeMath{
   enum State { Active, Refunding, Closed }
 
   mapping (address => uint256) public deposited;
+  mapping (address => uint256) public refunded;
   State public state;
 
   address public devMultisig;
@@ -56,21 +57,7 @@ contract RefundVault is Ownable, SafeMath{
     Closed();
   }
 
-  function closeForRefund() onlyOwner {
-    require(state == State.Active);
-    state = State.Closed;
-
-    uint256 balance = this.balance;
-
-    for(uint8 i = 0; i < 5; i++){
-      reserveWallet[i].transfer(div(balance, 5));
-      Transferred(reserveWallet[i], div(balance, 5));
-    }
-
-    Closed();
-  }
-
-  /*function enableRefunds() onlyOwner {
+  function enableRefunds() onlyOwner {
     require(state == State.Active);
     state = State.Refunding;
     RefundsEnabled();
@@ -78,10 +65,13 @@ contract RefundVault is Ownable, SafeMath{
 
   function refund(address investor) {
     require(state == State.Refunding);
+    require(refunded[investor] == 0);
+
     uint256 depositedValue = deposited[investor];
     deposited[investor] = 0;
     investor.transfer(depositedValue);
+    refunded[investor] = depositedValue;
     Refunded(investor, depositedValue);
-  }*/
+  }
 
 }
