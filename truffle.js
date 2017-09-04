@@ -1,11 +1,10 @@
 require("babel-register");
 require("babel-polyfill");
 
-
 // SNT
 const HDWalletProvider = require("truffle-hdwallet-provider");
 
-require('dotenv').config();
+require("dotenv").config();
 
 const mnemonic = process.env.MNEMONIC || "onther metaps onther metaps onther metaps onther metaps onther metaps onther metaps ";
 const providerUrl = "https://ropsten.infura.io";

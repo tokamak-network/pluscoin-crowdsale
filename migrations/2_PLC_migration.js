@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const moment = require("moment");
 
+const KYC = artifacts.require("KYC.sol");
 const PLCCrowdsale = artifacts.require("PLCCrowdsale.sol");
 const PLC = artifacts.require("PLC.sol");
 const RefundVault = artifacts.require("crowdsale/RefundVault.sol");
@@ -19,10 +20,10 @@ module.exports = async function (deployer, network, accounts) {
     const startDate = moment.utc("2017-09-26");
     const endTime = moment.utc("2017-10-10").unix();
 
-    const firstBonusDeadline = startDate.add(1,'day').unix();
-    const secondBonusDeadline = startDate.add(2,'day').unix();
-    const thirdBonusDeadline = startDate.add(3,'day').unix();
-    const fourthBonusDeadline = startDate.add(3,'day').unix();
+    const firstBonusDeadline = startDate.add(1, "day").unix();
+    const secondBonusDeadline = startDate.add(2, "day").unix();
+    const thirdBonusDeadline = startDate.add(3, "day").unix();
+    const fourthBonusDeadline = startDate.add(3, "day").unix();
 
     const timelines = [
       startTime,
@@ -30,7 +31,7 @@ module.exports = async function (deployer, network, accounts) {
       secondBonusDeadline,
       thirdBonusDeadline,
       fourthBonusDeadline,
-      endTime
+      endTime,
     ];
 
     // for demo
@@ -55,6 +56,9 @@ module.exports = async function (deployer, network, accounts) {
       "0x8afe4672155b070e0645c0c9fc50d8eb3eab9a7e",
     ];
 
+    const kyc = await KYC.new();
+    console.log("kyc deployed at", kyc.address);
+
     const multiSig = await MultiSig.new(reserveWallet, reserveWallet.length - 1); // 4 out of 5
     console.log("multiSig deployed at", multiSig.address);
 
@@ -66,6 +70,7 @@ module.exports = async function (deployer, network, accounts) {
 
     /*eslint-disable */
     const crowdsale = await PLCCrowdsale.new(
+      kyc.address,
       token.address,
       vault.address,
       multiSig.address,
@@ -75,7 +80,6 @@ module.exports = async function (deployer, network, accounts) {
       minEtherCap
     );
     /*eslint-enable */
-
     console.log("crowdsale deployed at", crowdsale.address);
 
     await token.transferOwnership(crowdsale.address);
