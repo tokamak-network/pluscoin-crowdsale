@@ -29,7 +29,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
   uint64[5] public deadlines; // [1506643200, 1506902400, 1507161600, 1507420800, 1507593600]; // [2017.9.26, 2017.10.02, 2017.10.05, 2017.10.08, 2017.10.10]
 
-  uint256 presaleRate = 500;
+  mapping (address => uint256) public presaleRate;
 	uint8[5] public rates = [240, 230, 220, 210, 200];
 
   // amount of raised money in wei
@@ -84,6 +84,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
   modifier onlyRegistered(address _addr) {
     require(kyc.isRegistered(_addr));
+    _;
   }
 
   /**
@@ -96,7 +97,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
   event Finalized();
   event ForTest();
-  event RegisterPresale(address indexed presaleInvestor, uint256 presaleAmount);
+  event RegisterPresale(address indexed presaleInvestor, uint256 presaleAmount, uint256 presaleRate);
   event PresaleTokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
 
   function PLCCrowdsale(
@@ -129,7 +130,6 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
     maxEtherCap  = _maxEtherCap;
     minEtherCap  = _minEtherCap;
-
   }
 
   // fallback function can be used to buy tokens
@@ -137,10 +137,10 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     buyTokens();
   }
 
-  function registerPresale(address presaleInvestor, uint256 presaleAmount) onlyBeforeStart {
+  function registerPresale(address presaleInvestor, uint256 presaleAmount, uint256 _presaleRate) onlyBeforeStart {
     presaleGuaranteedLimit[presaleInvestor] = presaleAmount;
-
-    RegisterPresale(presaleInvestor, presaleAmount);
+    presaleRate[presaleInvestor] = _presaleRate;
+    RegisterPresale(presaleInvestor, presaleAmount, _presaleRate);
   }
 
   function buyPresaleTokens(address beneficiary) payable whenNotPaused onlyBeforeStart {
@@ -152,29 +152,29 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
     // calculate eth amount
     uint256 weiAmount = msg.value;
-    uint256 totalAmount = add(presaleBuyerFunded[msg.sender], weiAmount);
+    uint256 totalAmount = add(presaleBuyerFunded[beneficiary], weiAmount);
 
     uint256 toFund;
     if (totalAmount > guaranteedLimit) {
-      toFund = sub(guaranteedLimit, presaleBuyerFunded[msg.sender]);
+      toFund = sub(guaranteedLimit, presaleBuyerFunded[beneficiary]);
     } else {
       toFund = weiAmount;
     }
 
     require(weiAmount >= toFund);
 
-    uint256 tokens = mul(toFund, presaleRate);
+    uint256 tokens = mul(toFund, presaleRate[beneficiary]);
 
     // forward ether to vault
     if (toFund > 0) {
       // update state
       weiRaised = add(weiRaised, toFund);
-      presaleBuyerFunded[msg.sender] = add(presaleBuyerFunded[msg.sender], toFund);
+      presaleBuyerFunded[beneficiary] = add(presaleBuyerFunded[beneficiary], toFund);
 
       //1 week lock
       token.mint(address(this), tokens);
       token.grantVestedTokens(
-        msg.sender,
+        beneficiary,
         tokens,
         uint64(endTime),
         uint64(endTime + 1 weeks),
