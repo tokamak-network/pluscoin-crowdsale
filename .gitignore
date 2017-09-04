@@ -1,8 +1,12 @@
+# logging
+.*log.*
+
 # truffle compile output
 build
 
 # npm
 node_modules
+yarn.lock
 
 # testrpc related
 .node*
