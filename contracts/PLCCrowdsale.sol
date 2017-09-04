@@ -15,7 +15,10 @@ import './KYC.sol';
  * on a token per ETH rate. Funds collected are forwarded to a wallet
  * as they arrive.
  */
-contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
+contract PLCCrowdsale is Ownable, SafeMath, Pausable {
+
+  // token registery contract
+  KYC public kyc;
 
   // The token being sold
   PLC public token;
@@ -37,6 +40,9 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
 
   // amount of ether funded for each buyer
   mapping (address => uint256) public buyerFunded;
+
+  // amount of ether funded for each buyer in presale phase
+  mapping (address => uint256) public buyerPresaled;
 
   // buyable interval in block number 20
   uint256 constant public maxCallFrequency = 20;
@@ -63,6 +69,11 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
     _;
   }
 
+  modifier onlyRegistered(address _addr) {
+    require(kyc.isRegistered(_addr));
+    _;
+  }
+
   /**
    * event for token purchase logging
    * @param purchaser who paid for the tokens
@@ -75,6 +86,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
   event ForTest();
 
   function PLCCrowdsale(
+    address _kyc,
     address _token,
     address _refundVault,
     address _devMultisig,
@@ -83,15 +95,17 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
     uint256 _maxEtherCap,
     uint256 _minEtherCap) {
 
-    require(_timelines[0] >= now);
+    // require(_timelines[0] >= now);
 
+    kyc   = KYC(_kyc);
     token = PLC(_token);
     vault = RefundVault(_refundVault);
-    devMultisig = _devMultisig;
+
+    devMultisig   = _devMultisig;
     reserveWallet = _reserveWallet;
 
-    startTime = _timelines[0];
-    endTime = _timelines[5];
+    startTime    = _timelines[0];
+    endTime      = _timelines[5];
 
     deadlines[0] = _timelines[1];
     deadlines[1] = _timelines[2];
@@ -99,42 +113,29 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
     deadlines[3] = _timelines[4];
     deadlines[4] = _timelines[5];
 
-    maxEtherCap = _maxEtherCap;
-    minEtherCap = _minEtherCap;
-
-    /*token = createTokenContract();
-    vault = new RefundVault();*/
+    maxEtherCap  = _maxEtherCap;
+    minEtherCap  = _minEtherCap;
   }
-
-
-  // creates the token to be sold.
-  function createTokenContract() internal returns (PLC) {
-    return new PLC();
-  }
-
 
   // fallback function can be used to buy tokens
   function () payable {
     buyTokens();
   }
 
-
   // low level token purchase function
   function buyTokens() payable whenNotPaused canBuyInBlock onlyRegistered(msg.sender) {
-    uint256 guaranteedLimit = maxGuaranteedLimit + registeredAmount[msg.sender];
-
     // check validity
     require(msg.sender != 0x00);
     require(validPurchase());
-    require(buyerFunded[msg.sender] < guaranteedLimit);
+    require(buyerFunded[msg.sender] < maxGuaranteedLimit);
 
     // calculate eth amount
     uint256 weiAmount = msg.value;
     uint256 totalAmount = add(buyerFunded[msg.sender], weiAmount);
 
     uint256 toFund;
-    if (totalAmount > guaranteedLimit) {
-      toFund = sub(guaranteedLimit, buyerFunded[msg.sender]);
+    if (totalAmount > maxGuaranteedLimit) {
+      toFund = sub(maxGuaranteedLimit, buyerFunded[msg.sender]);
     } else {
       toFund = weiAmount;
     }
@@ -143,26 +144,9 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable, KYC {
       toFund = sub(maxEtherCap, weiRaised);
     }
 
-    // ether for presale
-    uint256 forPreSale;
-    if (buyerFunded[msg.sender] < registeredAmount[msg.sender]) {
-      forPreSale = min256(toFund, sub(registeredAmount[msg.sender], buyerFunded[msg.sender]));
-    }
-
-    // ether for crowdsale
-    uint256 margin = sub(toFund, forPreSale);
-
     require(weiAmount >= toFund);
-    require(toFund == add(forPreSale, margin));
 
-    uint256 tokens;
-    if (margin > 0) {
-      tokens = mul(margin, getRate());
-    }
-
-    if (forPreSale > 0) {
-      tokens = add(tokens, mul(forPreSale, presaleRate));
-    }
+    uint256 tokens = mul(toFund, getRate());
 
     require(tokens > 0);
 
