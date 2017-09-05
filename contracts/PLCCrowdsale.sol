@@ -44,9 +44,6 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   // amount of ether funded for each buyer
   mapping (address => uint256) public buyerFunded;
 
-  // amount of ether funded for each buyer in presale phase
-  mapping (address => uint256) public presaleBuyerFunded;
-
   // buyable interval in block number 20
   uint256 constant public maxCallFrequency = 20;
 
@@ -58,6 +55,13 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   // minimum amount of funds to be raised in weis
   uint256 public maxEtherCap; // 100000 ether;
   uint256 public minEtherCap; // 30000 ether;
+
+  //investor address list
+  address[] buyerList;
+
+  //number of refunded investors
+  uint256 refundCompleted;
+
 
   // refund vault used to hold funds while crowdsale is running
   RefundVault public vault;
@@ -130,12 +134,22 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
     maxEtherCap  = _maxEtherCap;
     minEtherCap  = _minEtherCap;
+
   }
 
   // fallback function can be used to buy tokens
   function () payable {
-    buyTokens();
+    if(now < startTime)
+      buyPresaleTokens(msg.sender);
+    else
+      buyTokens();
   }
+
+  function pushBuyerList(address _address) internal {
+		if (buyerFunded[_address]>0) {
+			buyerList.push(_address);
+		}
+	}
 
   function registerPresale(address presaleInvestor, uint256 presaleAmount, uint256 _presaleRate) onlyBeforeStart {
     presaleGuaranteedLimit[presaleInvestor] = presaleAmount;
@@ -152,11 +166,11 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
     // calculate eth amount
     uint256 weiAmount = msg.value;
-    uint256 totalAmount = add(presaleBuyerFunded[beneficiary], weiAmount);
+    uint256 totalAmount = add(buyerFunded[beneficiary], weiAmount);
 
     uint256 toFund;
     if (totalAmount > guaranteedLimit) {
-      toFund = sub(guaranteedLimit, presaleBuyerFunded[beneficiary]);
+      toFund = sub(guaranteedLimit, buyerFunded[beneficiary]);
     } else {
       toFund = weiAmount;
     }
@@ -169,7 +183,8 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     if (toFund > 0) {
       // update state
       weiRaised = add(weiRaised, toFund);
-      presaleBuyerFunded[beneficiary] = add(presaleBuyerFunded[beneficiary], toFund);
+      buyerFunded[beneficiary] = add(buyerFunded[beneficiary], toFund);
+      pushBuyerList(beneficiary);
 
       //1 week lock
       token.mint(address(this), tokens);
@@ -227,6 +242,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
       // update state
       weiRaised = add(weiRaised, toFund);
       buyerFunded[msg.sender] = add(buyerFunded[msg.sender], toFund);
+      pushBuyerList(msg.sender);
 
       //1 week lock
       token.mint(address(this), tokens);
@@ -307,7 +323,6 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
       for(uint8 i = 0; i < 5; i++){
         token.mint(reserveWallet[i], div(mul(totalToken,2),70));
       }
-
     } else {
       vault.enableRefunds();
     }
@@ -321,6 +336,23 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     token.finishMinting();
 
     isFinalized = true;
+  }
+
+  function refundAll(uint256 limit) onlyOwner {
+    require(isFinalized);
+    require(!minReached());
+    require(limit > 0);
+
+		limit = refundCompleted + limit;
+
+		if (limit > buyerList.length) {
+			limit = buyerList.length;
+		}
+
+    for(uint256 i = refundCompleted; i < limit; i++){
+      vault.refund(buyerList[i]);
+    }
+    refundCompleted = limit;
   }
 
   // if crowdsale is unsuccessful, investors can claim refunds here
