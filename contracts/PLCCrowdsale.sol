@@ -67,8 +67,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   uint256 refundCompleted;
 
   //new owner of token contract when crowdsale is Finalized
-  address newTokenOwner = 0x00;
-
+  address newTokenOwner = 0x01ad78dbd65579882a7058bc19b104103627a2ff; // TODO: real acount
 
   // refund vault used to hold funds while crowdsale is running
   RefundVault public vault;
@@ -232,6 +231,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     if (toReturn > 0) {
       msg.sender.transfer(toReturn);
     }
+
   }
 
   function buyPresaleTokens(address beneficiary)
@@ -434,7 +434,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   function refundAll(uint256 numToRefund) onlyOwner {
     require(isFinalized);
     require(!minReached());
-    require(limit > 0);
+    require(numToRefund > 0);
 
 		uint256 limit = refundCompleted + numToRefund;
 
@@ -475,7 +475,6 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     require(isFinalized);
 
     uint256 unpaidTokens = token.balanceOf(address(this));
-    uint256 totalSupply = token.totalSupply();
 
     token.burn(unpaidTokens);
   }
