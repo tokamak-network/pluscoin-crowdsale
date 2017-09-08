@@ -676,8 +676,8 @@ now:\t\t\t${ now }
         //   .should.be.equal(owner);
 
         // token pause
-        await token.pause()
-          .should.be.fulfilled;
+        // await token.pause()
+        //   .should.be.fulfilled;
       });
     });
   },
