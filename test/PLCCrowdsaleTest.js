@@ -52,6 +52,8 @@ contract(
 
     let reserveWallet;
 
+    const newTokenOwner = "0x01ad78dbd65579882a7058bc19b104103627a2ff";
+
     before(async () => {
       reserveWallet = [
         reserveWallet0,
@@ -80,7 +82,7 @@ contract(
       ];
 
       presaleRate = {};
-      presaleRate[investor] = 500;
+      presaleRate[ investor ] = 500;
 
       rates = [ 240, 230, 220, 210, 200 ];
 
@@ -178,27 +180,33 @@ now:\t\t\t${ now }
       });
 
       it("register presale", async () => {
-
         await crowdsale.registerPresale(
           investor,
           ether(5000),
-          presaleRate[investor],
-          false
+          presaleRate[ investor ],
+          false,
         ).should.be.fulfilled;
+      });
 
+      it("register deferred presale", async () => {
+        await crowdsale.registerPresale(
+          investor,
+          ether(5000),
+          presaleRate[ investor ],
+          true,
+        ).should.be.fulfilled;
       });
 
       // Presale
-      it("should mint presaled amount", async () => {
+      it("should buy presaled amount", async () => {
         const presaledAmount = ether(5000);
         const investedAmount = ether(6000);
-        const returnedAmount = ether(1000);
 
         await crowdsale.registerPresale(
           investor,
           presaledAmount,
-          presaleRate[investor],
-          false
+          presaleRate[ investor ],
+          false,
         ).should.be.fulfilled;
 
         const balanceBeforeInvest = await eth.getBalance(investor);
@@ -209,7 +217,7 @@ now:\t\t\t${ now }
         }).should.be.fulfilled;
 
         const balanceAfterInvest = await eth.getBalance(investor);
-        const expectedTokenAmount = presaledAmount.mul(presaleRate[investor]);
+        const expectedTokenAmount = presaledAmount.mul(presaleRate[ investor ]);
 
         (await token.balanceOf(investor))
           .should.be.bignumber.equal(expectedTokenAmount);
@@ -217,11 +225,63 @@ now:\t\t\t${ now }
         (await token.totalSupply())
           .should.be.bignumber.equal(expectedTokenAmount);
         (balanceBeforeInvest - balanceAfterInvest).should.be.within(
-          ether(5000).toNumber(),
-          ether(5001).toNumber()
-        )
+          presaledAmount.toNumber(),
+          presaledAmount.add(ether(1)).toNumber(),
+        );
       });
 
+      it("should buy deferred presaled amount and burn remains", async () => {
+        const presaledAmount = maxEtherCap;
+        const investedAmount = ether(4000);
+
+        const rate = presaleRate[ investor ];
+
+        await crowdsale.registerPresale(
+          investor,
+          presaledAmount,
+          rate,
+          true,
+        ).should.be.fulfilled;
+
+        const balanceBeforeInvest = await eth.getBalance(investor);
+        const crowdsaleTokenBalance1 = await token.balanceOf(crowdsale.address);
+
+        await crowdsale.buyDeferredPresaleTokens(investor, {
+          value: investedAmount,
+          from: investor,
+        }).should.be.fulfilled;
+
+        const balanceAfterInvest = await eth.getBalance(investor);
+        const crowdsaleTokenBalance2 = await token.balanceOf(crowdsale.address);
+        const expectedUserTokenAmount = investedAmount.mul(rate);
+        const expectedTokenTotalSupply = presaledAmount.mul(rate);
+
+        (await token.balanceOf(investor))
+          .should.be.bignumber.equal(expectedUserTokenAmount);
+
+        (await token.totalSupply())
+          .should.be.bignumber.equal(expectedTokenTotalSupply);
+
+        // ether balance of investor
+        (balanceBeforeInvest - balanceAfterInvest).should.be.within(
+          investedAmount.toNumber(),
+          investedAmount.add(ether(1)).toNumber(),
+        );
+
+        // token balance of crowdsale
+        (crowdsaleTokenBalance1.sub(crowdsaleTokenBalance2))
+          .should.be.bignumber.equal(expectedUserTokenAmount);
+
+        await crowdsale.finalize()
+          .should.be.fulfilled;
+
+        // burn
+        await crowdsale.burnUnpaidTokens()
+          .should.be.fulfilled;
+
+        (await token.balanceOf(crowdsale.address))
+          .should.be.bignumber.equal(0);
+      });
 
       // after start
       it("should reject unregistered payments during the sale", async () => {
@@ -502,16 +562,16 @@ now:\t\t\t${ now }
 
         // refund claim
         for (const account of accounts.slice(0, numInvestor)) {
-         const balanceBeforeRefund = await eth.getBalance(account);
-         await crowdsale.claimRefund(account, { from: account })
-          .should.be.fulfilled;
-         const balanceAfterRefund = await eth.getBalance(account);
+          const balanceBeforeRefund = await eth.getBalance(account);
+          await crowdsale.claimRefund(account, { from: account })
+            .should.be.fulfilled;
+          const balanceAfterRefund = await eth.getBalance(account);
 
-         (balanceAfterRefund - balanceBeforeRefund).should.be.within(
-           ether(4999).toNumber(),
-           ether(5000).toNumber(),
-         );
-       }
+          (balanceAfterRefund - balanceBeforeRefund).should.be.within(
+            ether(4999).toNumber(),
+            ether(5000).toNumber(),
+          );
+        }
       });
 
       // // endTime1
@@ -607,7 +667,7 @@ now:\t\t\t${ now }
 
       // endTime 3
       it("can be finalized after endTime (when minEtherCap is not reached) and refund by refundAll", async () => {
-        const numInvestor = 50;
+        const numInvestor = 20;
         const eachInvestmentAmount = ether(5);
         const totalInvestmentAmount = eachInvestmentAmount.mul(numInvestor);
 
@@ -624,7 +684,8 @@ now:\t\t\t${ now }
 
         await increaseTimeTo(afterEndTime);
 
-        await crowdsale.finalize().should.be.fulfilled;
+        await crowdsale.finalize()
+          .should.be.fulfilled;
 
         // Ether Distribution
         const expectedDevBalance = new BigNumber(0);
@@ -635,22 +696,30 @@ now:\t\t\t${ now }
           (await eth.getBalance(wallet)).should.be.bignumber.equal(expectedEachReserveBalance);
         });
 
-        var balanceBeforeRefund = [];
-        var balanceAfterRefund = [];
+        const balanceBeforeRefund = [];
+        const balanceAfterRefund = [];
 
-        //store balanceBeforeRefund
-        for (let i=0;i<numInvestor;i++){
-          balanceBeforeRefund[i] = await eth.getBalance(accounts[i]);
+        // store balanceBeforeRefund
+        for (let i = 0; i < numInvestor; i++) {
+          balanceBeforeRefund[ i ] = await eth.getBalance(accounts[ i ]);
         }
         // refund claim
-        await crowdsale.refundAll(numInvestor-10, { from: owner }).should.be.fulfilled;
-        await crowdsale.refundAll(12, { from: owner }).should.be.fulfilled;
+        await crowdsale.refundAll(numInvestor - 10, { from: owner })
+          .should.be.fulfilled;
 
-        //check refund
-        for (let i=0;i<numInvestor;i++){
-          balanceAfterRefund[i] = await eth.getBalance(accounts[i]);
+        // some investor claim refund
+        await crowdsale.claimRefund(accounts[ 13 ], { from: owner })
+          .should.be.fulfilled;
 
-          balanceAfterRefund[i].sub(balanceBeforeRefund[i]).should.be.bignumber.equal(ether(5))
+        await crowdsale.refundAll(12, { from: owner })
+          .should.be.fulfilled;
+
+        // check refund
+        for (let i = 0; i < numInvestor; i++) {
+          balanceAfterRefund[ i ] = await eth.getBalance(accounts[ i ]);
+
+          balanceAfterRefund[ i ].sub(balanceBeforeRefund[ i ])
+            .should.be.bignumber.equal(eachInvestmentAmount);
         }
       });
 
@@ -671,13 +740,11 @@ now:\t\t\t${ now }
           .should.be.rejectedWith(EVMThrow);
 
         // change token owner
-        await crowdsale.changeTokenOwner();
-        // (await token.owner())
-        //   .should.be.equal(owner);
+        await crowdsale.changeTokenOwner()
+          .should.be.fulfilled;
 
-        // token pause
-        // await token.pause()
-        //   .should.be.fulfilled;
+        (await token.owner())
+          .should.be.equal(newTokenOwner);
       });
     });
   },
