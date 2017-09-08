@@ -63,15 +63,20 @@ contract RefundVault is Ownable, SafeMath{
     RefundsEnabled();
   }
 
-  function refund(address investor) {
+  function refund(address investor) returns (bool) {
     require(state == State.Refunding);
-    require(refunded[investor] == 0);
+
+    if (refunded[investor] == 0) {
+      return false;
+    }
 
     uint256 depositedValue = deposited[investor];
     deposited[investor] = 0;
-    investor.transfer(depositedValue);
     refunded[investor] = depositedValue;
+    investor.transfer(depositedValue);
     Refunded(investor, depositedValue);
+
+    return true;
   }
 
 }

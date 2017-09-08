@@ -112,7 +112,8 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     address[5] _reserveWallet,
     uint64[6] _timelines, // [startTime, ... , endTime]
     uint256 _maxEtherCap,
-    uint256 _minEtherCap) {
+    uint256 _minEtherCap)
+  {
 
     // require(_timelines[0] >= now);
 
@@ -146,7 +147,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   }
 
   function pushBuyerList(address _address) internal {
-		if (buyerFunded[_address]>0) {
+		if (buyerFunded[_address] > 0) {
 			buyerList.push(_address);
 		}
 	}
@@ -157,7 +158,11 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     RegisterPresale(presaleInvestor, presaleAmount, _presaleRate);
   }
 
-  function buyPresaleTokens(address beneficiary) payable whenNotPaused onlyBeforeStart {
+  function buyPresaleTokens(address beneficiary)
+    payable
+    whenNotPaused
+    onlyBeforeStart
+  {
     // check validity
     require(beneficiary != 0x00);
     require(validPurchase());
@@ -186,7 +191,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
       buyerFunded[beneficiary] = add(buyerFunded[beneficiary], toFund);
       pushBuyerList(beneficiary);
 
-      //1 week lock
+      // 1 week lock
       token.mint(address(this), tokens);
       token.grantVestedTokens(
         beneficiary,
@@ -212,7 +217,13 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   }
 
   // low level token purchase function
-  function buyTokens() payable whenNotPaused canBuyInBlock onlyAfterStart onlyRegistered(msg.sender) {
+  function buyTokens()
+    payable
+    whenNotPaused
+    canBuyInBlock
+    onlyAfterStart
+    onlyRegistered(msg.sender)
+  {
 
     // check validity
     require(validPurchase());
@@ -244,7 +255,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
       buyerFunded[msg.sender] = add(buyerFunded[msg.sender], toFund);
       pushBuyerList(msg.sender);
 
-      //1 week lock
+      // 1 week lock
       token.mint(address(this), tokens);
       token.grantVestedTokens(
         msg.sender,
@@ -269,11 +280,11 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   }
 
   function getRate() constant returns (uint256 rate) {
-        for(uint8 i = 0; i < deadlines.length; i++)
-            if(now < deadlines[i])
-                return rates[i];
-        return rates[rates.length-1];//should never be returned, but to be sure to not divide by 0
-    }
+    for(uint8 i = 0; i < deadlines.length; i++)
+      if(now < deadlines[i])
+        return rates[i];
+      return rates[rates.length-1];//should never be returned, but to be sure to not divide by 0
+  }
 
   // send ether to the fund collection wallet
   // override to create custom fund forwarding mechanisms
@@ -286,8 +297,6 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     bool nonZeroPurchase = msg.value != 0;
     return nonZeroPurchase && !maxReached();
   }
-
-
 
   // @return true if crowdsale event has ended
   function hasEnded() public constant returns (bool) {
@@ -317,7 +326,14 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
       // dev team 10%
       uint256 devAmount = div(mul(totalToken, 20), 70);
       token.mint(address(this), devAmount);
-      token.grantVestedTokens(devMultisig, devAmount, uint64(now), uint64(now + 1 years), uint64(now + 1 years),false,false);
+      token.grantVestedTokens(
+        devMultisig,
+        devAmount,
+        uint64(now),
+        uint64(now + 1 years),
+        uint64(now + 1 years),
+        false,
+        false);
 
       // reserve 10%
       for(uint8 i = 0; i < 5; i++){
@@ -345,22 +361,23 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
 		limit = refundCompleted + limit;
 
-		if (limit > buyerList.length) {
-			limit = buyerList.length;
-		}
+    if (limit > buyerList.length) {
+      limit = buyerList.length;
+    }
 
-    for(uint256 i = refundCompleted; i < limit; i++){
+    for(uint256 i = refundCompleted; i < limit; i++) {
       vault.refund(buyerList[i]);
     }
+
     refundCompleted = limit;
   }
 
   // if crowdsale is unsuccessful, investors can claim refunds here
-  function claimRefund(address investor) {
+  function claimRefund(address investor) returns (bool) {
     require(isFinalized);
     require(!minReached());
 
-    vault.refund(investor);
+    return vault.refund(investor);
   }
 
   function maxReached() public constant returns (bool) {
