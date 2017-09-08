@@ -41,8 +41,12 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   // amount of ether presale buyer can buy
   mapping (address => uint256) public presaleGuaranteedLimit;
 
+  mapping (address => bool) public isDeferred;
+
   // amount of ether funded for each buyer
   mapping (address => uint256) public buyerFunded;
+  mapping (address => uint256) public buyerDeferredSaleFunded;
+
 
   // buyable interval in block number 20
   uint256 constant public maxCallFrequency = 20;
@@ -61,6 +65,9 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
   //number of refunded investors
   uint256 refundCompleted;
+
+  //new owner of token contract when crowdsale is Finalized
+  address newTokenOwner = 0x00;
 
 
   // refund vault used to hold funds while crowdsale is running
@@ -103,6 +110,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   event ForTest();
   event RegisterPresale(address indexed presaleInvestor, uint256 presaleAmount, uint256 presaleRate);
   event PresaleTokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
+  event DeferredPresaleTokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
 
   function PLCCrowdsale(
     address _kyc,
@@ -140,22 +148,90 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
   // fallback function can be used to buy tokens
   function () payable {
-    if(now < startTime)
+    if(isDeferred[msg.sender]){
+      buyDeferredPresaleTokens(msg.sender);
+    }
+    else if(now < startTime)
       buyPresaleTokens(msg.sender);
     else
       buyTokens();
   }
 
   function pushBuyerList(address _address) internal {
-		if (buyerFunded[_address] > 0) {
+		if (buyerFunded[_address] > 0 || buyerDeferredSaleFunded[_address] > 0) {
 			buyerList.push(_address);
 		}
 	}
 
-  function registerPresale(address presaleInvestor, uint256 presaleAmount, uint256 _presaleRate) onlyBeforeStart {
+
+  function registerPresale(address presaleInvestor, uint256 presaleAmount, uint256 _presaleRate, bool _isDeferred) onlyBeforeStart {
+    require(presaleInvestor != 0x00);
+    require(presaleAmount > 0);
+    require(_presaleRate > 0);
+
     presaleGuaranteedLimit[presaleInvestor] = presaleAmount;
     presaleRate[presaleInvestor] = _presaleRate;
+    isDeferred[presaleInvestor] = _isDeferred;
+
+    if(_isDeferred){
+      weiRaised = add(weiRaised, presaleAmount);
+
+      uint256 tokens = mul(presaleAmount, _presaleRate);
+      token.mint(address(this), tokens);
+    }
+
     RegisterPresale(presaleInvestor, presaleAmount, _presaleRate);
+  }
+
+  function buyDeferredPresaleTokens(address beneficiary)
+    payable
+    whenNotPaused
+  {
+    require(beneficiary != 0x00);
+    require(isDeferred[beneficiary]);
+
+    uint guaranteedLimit = presaleGuaranteedLimit[beneficiary];
+    require(guaranteedLimit > 0);
+
+    uint256 weiAmount = msg.value;
+    require(weiAmount != 0);
+    uint256 totalAmount = add(buyerDeferredSaleFunded[beneficiary], weiAmount);
+
+    uint256 toFund;
+    if (totalAmount > guaranteedLimit) {
+      toFund = sub(guaranteedLimit, buyerDeferredSaleFunded[beneficiary]);
+    } else {
+      toFund = weiAmount;
+    }
+
+    require(weiAmount >= toFund);
+
+    uint256 tokens = mul(toFund, presaleRate[beneficiary]);
+
+    // forward ether to vault
+    if (toFund > 0) {
+      // update state
+      buyerDeferredSaleFunded[beneficiary] = add(buyerDeferredSaleFunded[beneficiary], toFund);
+      pushBuyerList(beneficiary);
+
+      token.transfer(beneficiary, tokens);
+      DeferredPresaleTokenPurchase(msg.sender, beneficiary, toFund, tokens);
+
+      //ether distribution straight to devMultisig & reserveWallet
+      uint256 devAmount = div(toFund, 10);
+      devMultisig.transfer(devAmount);
+
+      uint reserveAmount = div(mul(toFund, 9), 10);
+      for(uint8 i = 0; i < 5; i++){
+        reserveWallet[i].transfer(div(reserveAmount, 5));
+      }
+    }
+
+    uint256 toReturn = sub(weiAmount, toFund);
+    // return ether if needed
+    if (toReturn > 0) {
+      msg.sender.transfer(toReturn);
+    }
   }
 
   function buyPresaleTokens(address beneficiary)
@@ -166,6 +242,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     // check validity
     require(beneficiary != 0x00);
     require(validPurchase());
+    require(!isDeferred[beneficiary]);
     uint guaranteedLimit = presaleGuaranteedLimit[beneficiary];
     require(guaranteedLimit > 0);
 
@@ -330,7 +407,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
         devMultisig,
         devAmount,
         uint64(now),
-        uint64(now + 1 years),
+        uint64(now),
         uint64(now + 1 years),
         false,
         false);
@@ -354,12 +431,12 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     isFinalized = true;
   }
 
-  function refundAll(uint256 limit) onlyOwner {
+  function refundAll(uint256 numToRefund) onlyOwner {
     require(isFinalized);
     require(!minReached());
     require(limit > 0);
 
-		limit = refundCompleted + limit;
+		uint256 limit = refundCompleted + numToRefund;
 
     if (limit > buyerList.length) {
       limit = buyerList.length;
@@ -388,8 +465,19 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     return weiRaised >= minEtherCap;
   }
 
-  function changeTokenOwner(address newOwner) onlyOwner {
-    token.transferOwnership(newOwner);
+  function changeTokenOwner() onlyOwner {
+    token.transferOwnership(newTokenOwner);
+  }
+
+  function burnUnpaidTokens()
+    onlyOwner
+  {
+    require(isFinalized);
+
+    uint256 unpaidTokens = token.balanceOf(address(this));
+    uint256 totalSupply = token.totalSupply();
+
+    token.burn(unpaidTokens);
   }
 
 }
