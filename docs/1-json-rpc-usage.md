@@ -42,7 +42,9 @@ Creates new message call transaction or a contract creation, if the data field c
     {
       "from":"0x91e9cc445e27efb3ae4bc0c782748010e7aab01e",
       "to":"0x3d782870115f1a03bb5eb2547473d9f3e0462995",
-      "value":"0xde0b6b3a7640000"
+      "value":"0xde0b6b3a7640000",
+      "gas":"0x11558",
+      "gasPrice":"0x4a817c800"
     }
   ],
   "id":1
