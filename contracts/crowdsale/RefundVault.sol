@@ -66,7 +66,7 @@ contract RefundVault is Ownable, SafeMath{
   function refund(address investor) returns (bool) {
     require(state == State.Refunding);
 
-    if (refunded[investor] == 0) {
+    if (refunded[investor] > 0) {
       return false;
     }
 
