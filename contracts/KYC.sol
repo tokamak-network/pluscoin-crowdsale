@@ -17,12 +17,12 @@ contract KYC is Ownable, SafeMath, Pausable {
     _;
   }
 
-  modifier onlyAdmin(){
+  modifier onlyAdmin() {
     require(admin[msg.sender]);
     _;
   }
 
-  function KYC(){
+  function KYC() {
     admin[msg.sender] = true;
   }
 
@@ -33,7 +33,7 @@ contract KYC is Ownable, SafeMath, Pausable {
     require(_addr != address(0) && admin[_addr] == false);
     admin[_addr] = true;
 
-    NewAdmin(_addr)
+    NewAdmin(_addr);
   }
 
   function isRegistered(address _addr)
@@ -56,17 +56,17 @@ contract KYC is Ownable, SafeMath, Pausable {
     Registered(_addr);
   }
 
-  function registerByList(address[] _addr)
+  function registerByList(address[] _addrs)
     public
     onlyAdmin
     whenNotPaused
   {
-    for(uint256 i = 0; i < _addr.length; i++){
-      require(_addr[i] != address(0) && registeredAddress[_addr[i]] == false);
+    for(uint256 i = 0; i < _addrs.length; i++) {
+      require(_addrs[i] != address(0) && registeredAddress[_addrs[i]] == false);
 
-      registeredAddress[_addr[i]] = true;
+      registeredAddress[_addrs[i]] = true;
 
-      Registered(_addr[i]);
+      Registered(_addrs[i]);
     }
   }
 
@@ -80,16 +80,16 @@ contract KYC is Ownable, SafeMath, Pausable {
     Unregistered(_addr);
   }
 
-  function unregisterByList(address[] _addr)
+  function unregisterByList(address[] _addrs)
     public
     onlyAdmin
   {
-    for(uint256 i=0; i < _addr.length; i++){
-      require(isRegistered(_addr[i]));
+    for(uint256 i = 0; i < _addrs.length; i++) {
+      require(isRegistered(_addrs[i]));
 
-      registeredAddress[_addr[i]] = false;
+      registeredAddress[_addrs[i]] = false;
 
-      Unregistered(_addr[i]);
+      Unregistered(_addrs[i]);
     }
 
   }
