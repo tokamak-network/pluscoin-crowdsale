@@ -25,12 +25,25 @@ contract RefundVault is Ownable, SafeMath{
   event RefundsEnabled();
   event Refunded(address indexed beneficiary, uint256 weiAmount);
 
+  /**
+   * @dev This constructor sets the addresses of multi-signature wallet and
+   * 5 reserve wallets.
+   * and forwarding it if crowdsale is successful.
+   * @params _devMultiSig address The address of multi-signature wallet.
+   * @params _reserveWallet address[5] The addresses of reserve wallet.
+   */
   function RefundVault(address _devMultiSig, address[5] _reserveWallet) {
     state = State.Active;
     devMultisig = _devMultiSig;
     reserveWallet = _reserveWallet;
   }
 
+  /**
+   * @dev This function is called when user buy tokens. Only RefundVault
+   * contract stores the Ether user sent which forwarded from crowdsale
+   * contract.
+   * @params investor address The address who buy the token from crowdsale.
+   */
   function deposit(address investor) onlyOwner payable {
     require(state == State.Active);
     deposited[investor] = add(deposited[investor], msg.value);
@@ -38,6 +51,9 @@ contract RefundVault is Ownable, SafeMath{
 
   event Transferred(address _to, uint _value);
 
+  /**
+   * @dev This function is called when crowdsale is successfully finalized.
+   */
   function close() onlyOwner {
     require(state == State.Active);
     state = State.Closed;
@@ -57,12 +73,19 @@ contract RefundVault is Ownable, SafeMath{
     Closed();
   }
 
+  /**
+   * @dev This function is called when crowdsale is unsuccessfully finalized
+   * and refund is required.
+   */
   function enableRefunds() onlyOwner {
     require(state == State.Active);
     state = State.Refunding;
     RefundsEnabled();
   }
 
+  /**
+   * @dev This function allows for user to refund Ether.
+   */
   function refund(address investor) returns (bool) {
     require(state == State.Refunding);
 
