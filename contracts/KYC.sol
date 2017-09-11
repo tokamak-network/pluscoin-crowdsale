@@ -1,4 +1,4 @@
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.13;
 
 import './math/SafeMath.sol';
 import './ownership/Ownable.sol';
@@ -35,6 +35,20 @@ contract KYC is Ownable, SafeMath, Pausable {
     Registered(_addr);
   }
 
+  function registerByList(address[] _addr)
+    public
+    onlyOwner
+    whenNotPaused
+  {
+    for(uint256 i = 0; i < _addr.length; i++){
+      require(_addr[i] != address(0) && registeredAddress[_addr[i]] == false);
+
+      registeredAddress[_addr[i]] = true;
+
+      Registered(_addr[i]);
+    }
+  }
+
   function unregister(address _addr)
     public
     onlyOwner
@@ -43,5 +57,19 @@ contract KYC is Ownable, SafeMath, Pausable {
     registeredAddress[_addr] = false;
 
     Unregistered(_addr);
+  }
+
+  function unregisterByList(address[] _addr)
+    public
+    onlyOwner
+  {
+    for(uint256 i=0; i < _addr.length; i++){
+      require(isRegistered(_addr[i]));
+
+      registeredAddress[_addr[i]] = false;
+
+      Unregistered(_addr[i]);
+    }
+
   }
 }

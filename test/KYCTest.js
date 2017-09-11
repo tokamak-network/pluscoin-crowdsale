@@ -20,21 +20,21 @@ contract("KYC", async ([ owner, , , , , , , , ...accounts ]) => {
   let kyc;
 
   const idx0 = 0;
-  const idx1 = accounts.length * 1 / 4;
-  const idx2 = accounts.length * 2 / 4;
-  const idx3 = accounts.length * 3 / 4;
-  const idx4 = accounts.length;
+  const idx1 = accounts.length * 1 / 6;
+  const idx2 = accounts.length * 2 / 6;
+  const idx3 = accounts.length * 3 / 6;
+  const idx4 = accounts.length * 4 / 6;
+  const idx5 = accounts.length * 5 / 6;
+  const idx6 = accounts.length;
 
   beforeEach(async () => {
     kyc = await KYC.new();
   });
 
-  it("should register new user initially", async () => {
+  it("should register new user", async () => {
     for (const account of accounts.slice(0, idx0)) {
       (await kyc.isRegistered(account))
         .should.be.equal(false);
-
-      process.exit(1);
 
       await kyc.register(account)
         .should.be.fulfilled;
@@ -93,4 +93,37 @@ contract("KYC", async ([ owner, , , , , , , , ...accounts ]) => {
         .should.be.equal(false);
     }
   });
+
+  it("should register new user by list", async () => {
+    for (const account of accounts.slice(idx4, idx5)) {
+      (await kyc.isRegistered(account))
+        .should.be.equal(false);
+    }
+    await kyc.registerByList(accounts.slice(idx4,idx5));
+
+    for (const account of accounts.slice(idx4, idx5)) {
+      (await kyc.isRegistered(account))
+        .should.be.equal(true);
+    }
+  });
+
+  it("should unregister new user by list", async () => {
+    for (const account of accounts.slice(idx5, idx6)) {
+      (await kyc.isRegistered(account))
+        .should.be.equal(false);
+    }
+    await kyc.registerByList(accounts.slice(idx5,idx6));
+
+    for (const account of accounts.slice(idx5, idx6)) {
+      (await kyc.isRegistered(account))
+        .should.be.equal(true);
+    }
+    await kyc.unregisterByList(accounts.slice(idx5,idx6));
+
+    for (const account of accounts.slice(idx5, idx6)) {
+      (await kyc.isRegistered(account))
+        .should.be.equal(false);
+    }
+  });
+
 });
