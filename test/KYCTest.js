@@ -25,7 +25,9 @@ contract("KYC", async ([ owner, , , , , , , , ...accounts ]) => {
   const idx3 = accounts.length * 3 / 6;
   const idx4 = accounts.length * 4 / 6;
   const idx5 = accounts.length * 5 / 6;
-  const idx6 = accounts.length;
+  const idx6 = accounts.length - 3;
+  const idx7 = accounts.length - 2;
+  const newAdmin = accounts.length -1;
 
   beforeEach(async () => {
     kyc = await KYC.new();
@@ -126,4 +128,20 @@ contract("KYC", async ([ owner, , , , , , , , ...accounts ]) => {
     }
   });
 
+  it("should setAdmin and register with new Admin", async () => {
+    (await kyc.isRegistered(accounts[idx7]))
+      .should.be.equal(false);
+
+    await kyc.setAdmin(accounts[newAdmin])
+      .should.be.fulfilled;
+
+
+    await kyc.register(accounts[idx7], {
+      from: accounts[newAdmin]
+    }).should.be.fulfilled;
+
+
+    (await kyc.isRegistered(accounts[idx7]))
+      .should.be.equal(true);
+  });
 });
