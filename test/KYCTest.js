@@ -27,7 +27,7 @@ contract("KYC", async ([ owner, , , , , , , , ...accounts ]) => {
   const idx5 = accounts.length * 5 / 6;
   const idx6 = accounts.length - 3;
   const idx7 = accounts.length - 2;
-  const newAdmin = accounts.length -1;
+  const newAdmin = accounts.length - 1;
 
   beforeEach(async () => {
     kyc = await KYC.new();
@@ -101,7 +101,7 @@ contract("KYC", async ([ owner, , , , , , , , ...accounts ]) => {
       (await kyc.isRegistered(account))
         .should.be.equal(false);
     }
-    await kyc.registerByList(accounts.slice(idx4,idx5));
+    await kyc.registerByList(accounts.slice(idx4, idx5));
 
     for (const account of accounts.slice(idx4, idx5)) {
       (await kyc.isRegistered(account))
@@ -114,13 +114,13 @@ contract("KYC", async ([ owner, , , , , , , , ...accounts ]) => {
       (await kyc.isRegistered(account))
         .should.be.equal(false);
     }
-    await kyc.registerByList(accounts.slice(idx5,idx6));
+    await kyc.registerByList(accounts.slice(idx5, idx6));
 
     for (const account of accounts.slice(idx5, idx6)) {
       (await kyc.isRegistered(account))
         .should.be.equal(true);
     }
-    await kyc.unregisterByList(accounts.slice(idx5,idx6));
+    await kyc.unregisterByList(accounts.slice(idx5, idx6));
 
     for (const account of accounts.slice(idx5, idx6)) {
       (await kyc.isRegistered(account))
@@ -129,19 +129,17 @@ contract("KYC", async ([ owner, , , , , , , , ...accounts ]) => {
   });
 
   it("should setAdmin and register with new Admin", async () => {
-    (await kyc.isRegistered(accounts[idx7]))
+    (await kyc.isRegistered(accounts[ idx7 ]))
       .should.be.equal(false);
 
-    await kyc.setAdmin(accounts[newAdmin])
+    await kyc.setAdmin(accounts[ newAdmin ])
       .should.be.fulfilled;
 
-
-    await kyc.register(accounts[idx7], {
-      from: accounts[newAdmin]
+    await kyc.register(accounts[ idx7 ], {
+      from: accounts[ newAdmin ],
     }).should.be.fulfilled;
 
-
-    (await kyc.isRegistered(accounts[idx7]))
+    (await kyc.isRegistered(accounts[ idx7 ]))
       .should.be.equal(true);
   });
 });
