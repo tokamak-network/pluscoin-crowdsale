@@ -72,10 +72,15 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   // refund vault used to hold funds while crowdsale is running
   RefundVault public vault;
 
+  //dev team multisig wallet
   address devMultisig;
 
+  //reserve
   address[5] reserveWallet;
 
+  /**
+   * @dev Checks whether buyer is sending transaction too frequently or not
+   */
   modifier canBuyInBlock () {
     require(add(lastCallBlock[msg.sender], maxCallFrequency) < block.number);
     lastCallBlock[msg.sender] = block.number;
@@ -105,12 +110,33 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
    * @param amount amount of tokens purchased
    */
   event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
-  event Finalized();
-  event ForTest();
-  event RegisterPresale(address indexed presaleInvestor, uint256 presaleAmount, uint256 presaleRate);
   event PresaleTokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
   event DeferredPresaleTokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
 
+  /**
+   * event for finalize logging
+   */
+  event Finalized();
+
+  /**
+   * event for register presale logging
+   * @param presaleInvestor who register for presale
+   * @param presaleAmount weis presaleInvestor can buy as presale
+   * @param presaleRate rate at which presaleInvestor can buy tokens
+   */
+  event RegisterPresale(address indexed presaleInvestor, uint256 presaleAmount, uint256 presaleRate);
+
+  /**
+   * @dev PLCCrowdsale constructor sets variables
+   * @param _kyc address The address which KYC contract is deployed at
+   * @param _token address The address which PLC contract is deployed at
+   * @param _refundVault address The address which RefundVault is deployed at
+   * @param _devMultisig address The address which MultiSigWallet for devTeam is deployed at
+   * @param _reserveWallet address[5] The address list of reserveWallet addresses
+   * @param _timelines uint64[5] list of timelines from startTime to endTime with timelines for rate changes
+   * @param _maxEtherCap uint256 The value which maximum weis to be funded
+   * @param _minEtherCap uint256 The value which minimum weis to be funded
+   */
   function PLCCrowdsale(
     address _kyc,
     address _token,
