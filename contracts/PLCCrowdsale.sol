@@ -79,7 +79,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   address[5] reserveWallet;
 
   /**
-   * @dev Checks whether buyer is sending transaction too frequently or not
+   * @dev Checks whether buyer is sending transaction too frequently
    */
   modifier canBuyInBlock () {
     require(add(lastCallBlock[msg.sender], maxCallFrequency) < block.number);
@@ -87,16 +87,25 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     _;
   }
 
+  /**
+   * @dev Checks whether ico is started
+   */
   modifier onlyAfterStart(){
     require(now >= startTime && now <= endTime);
     _;
   }
 
+  /**
+   * @dev Checks whether ico is not started
+   */
   modifier onlyBeforeStart(){
     require(now < startTime);
     _;
   }
 
+  /**
+   * @dev Checks whether the account is registered
+   */
   modifier onlyRegistered(address _addr) {
     require(kyc.isRegistered(_addr));
     _;
@@ -171,7 +180,9 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
   }
 
-  // fallback function can be used to buy tokens
+  /**
+   * @dev PLCCrowdsale fallback function for buying Tokens
+   */
   function () payable {
     if(isDeferred[msg.sender]){
       buyDeferredPresaleTokens(msg.sender);
@@ -182,13 +193,23 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
       buyTokens();
   }
 
-  function pushBuyerList(address _address) internal {
-		if (buyerFunded[_address] > 0 || buyerDeferredSaleFunded[_address] > 0) {
-			buyerList.push(_address);
+  /**
+   * @dev push all token buyers in list
+   * @param _addr address Account to push into buyerList
+   */
+  function pushBuyerList(address _addr) internal {
+		if (buyerFunded[_addr] > 0 || buyerDeferredSaleFunded[_addr] > 0) {
+			buyerList.push(_addr);
 		}
 	}
 
-
+  /**
+   * @dev register presale account checking modifier
+   * @param presaleInvestor The account to register as presale account
+   * @param presaledAmount The value which investor is allowed to buy
+   * @param _presaleRate The rate at which investor buy tokens
+   * @param _isDeferred whether presaleInvestor is deferred buyer
+   */
   function registerPresale(address presaleInvestor, uint256 presaleAmount, uint256 _presaleRate, bool _isDeferred) onlyBeforeStart {
     require(presaleInvestor != 0x00);
     require(presaleAmount > 0);
@@ -208,6 +229,10 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     RegisterPresale(presaleInvestor, presaleAmount, _presaleRate);
   }
 
+  /**
+   * @dev buy token (deferred presale investor)
+   * @param beneficiary address The account to receive tokens
+   */
   function buyDeferredPresaleTokens(address beneficiary)
     payable
     whenNotPaused
@@ -260,6 +285,10 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
   }
 
+  /**
+   * @dev buy token (normal presale investor)
+   * @param beneficiary address The account to receive tokens
+   */
   function buyPresaleTokens(address beneficiary)
     payable
     whenNotPaused
@@ -319,7 +348,9 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
   }
 
-  // low level token purchase function
+  /**
+   * @dev buy token (normal investors)
+   */
   function buyTokens()
     payable
     whenNotPaused
@@ -382,6 +413,10 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     }
   }
 
+  /**
+   * @dev get buy rate for now
+   * @return rate for now
+   */
   function getRate() constant returns (uint256 rate) {
     for(uint8 i = 0; i < deadlines.length; i++)
       if(now < deadlines[i])
@@ -389,25 +424,34 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
       return rates[rates.length-1];//should never be returned, but to be sure to not divide by 0
   }
 
-  // send ether to the fund collection wallet
-  // override to create custom fund forwarding mechanisms
+  /**
+   * @dev send ether to the fund collection wallet
+   * @param toFund uint256 The value of weis to send to vault
+   */
   function forwardFunds(uint256 toFund) internal {
     vault.deposit.value(toFund)(msg.sender);
   }
 
-  // @return true if the transaction can buy tokens
+  /**
+   * @dev checks whether purchase value is not zero and maxEtherCap is not reached
+   * @return true if the transaction can buy tokens
+   */
   function validPurchase() internal constant returns (bool) {
     bool nonZeroPurchase = msg.value != 0;
     return nonZeroPurchase && !maxReached();
   }
 
-  // @return true if crowdsale event has ended
+  /**
+   * @dev checks whether crowdsale is ended
+   * @return true if crowdsale event has ended
+   */
   function hasEnded() public constant returns (bool) {
     return now > endTime;
   }
 
-  // should be called after crowdsale ends, to do
-  // some extra finalization work
+  /**
+   * @dev should be called after crowdsale ends, to do
+   */
   function finalize() {
     require(!isFinalized);
     require(hasEnded() || maxReached());
@@ -418,8 +462,9 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     isFinalized = true;
   }
 
-  // end token minting on finalization
-  // override this with custom logic if needed
+  /**
+   * @dev end token minting on finalization, mint tokens for dev team and reserve wallets
+   */
   function finalization() internal {
     if (minReached()) {
       vault.close();
@@ -448,6 +493,9 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     token.finishMinting();
   }
 
+  /**
+   * @dev should be called when ethereum is forked during crowdsale for refunding ethers on not supported fork
+   */
   function finalizeWhenForked() onlyOwner whenPaused {
     require(!isFinalized);
 
@@ -457,6 +505,10 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     isFinalized = true;
   }
 
+  /**
+   * @dev refund a lot of investors at a time checking onlyOwner
+   * @param numToRefund uint256 The number of investors to refund
+   */
   function refundAll(uint256 numToRefund) onlyOwner {
     require(isFinalized);
     require(!minReached());
@@ -475,7 +527,10 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     refundCompleted = limit;
   }
 
-  // if crowdsale is unsuccessful, investors can claim refunds here
+  /**
+   * @dev if crowdsale is unsuccessful, investors can claim refunds here
+   * @param investor address The account to be refunded
+   */
   function claimRefund(address investor) returns (bool) {
     require(isFinalized);
     require(!minReached());
@@ -483,18 +538,33 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     return vault.refund(investor);
   }
 
+  /**
+   * @dev Checks whether maxEtherCap is reached
+   * @return true if max ether cap is reaced
+   */
   function maxReached() public constant returns (bool) {
     return weiRaised == maxEtherCap;
   }
 
+  /**
+   * @dev Checks whether minEtherCap is reached
+   * @return true if min ether cap is reaced
+   */
   function minReached() public constant returns (bool) {
     return weiRaised >= minEtherCap;
   }
 
+  /**
+   * @dev should change token owner from crowdsale to newTokenOwner when crowdsale is finalized
+   */
   function changeTokenOwner() onlyOwner {
+    require(isFinalized);
     token.transferOwnership(newTokenOwner);
   }
 
+  /**
+   * @dev should burn unpaid tokens of deferred presale investors
+   */
   function burnUnpaidTokens()
     onlyOwner
   {
@@ -504,5 +574,4 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
     token.burn(unpaidTokens);
   }
-
 }
