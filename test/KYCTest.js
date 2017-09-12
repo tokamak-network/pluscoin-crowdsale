@@ -38,8 +38,11 @@ contract("KYC", async ([ owner, , , , , , , , ...accounts ]) => {
       (await kyc.isRegistered(account))
         .should.be.equal(false);
 
-      await kyc.register(account)
+      const r = await kyc.register(account)
         .should.be.fulfilled;
+
+      // console.log("r :", r);
+      console.log("1231231312");
 
       (await kyc.isRegistered(account))
         .should.be.equal(true);
