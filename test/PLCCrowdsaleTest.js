@@ -180,12 +180,13 @@ now:\t\t\t${ now }
       });
 
       it("register presale", async () => {
-        await crowdsale.registerPresale(
+        const registerPresaleTx = await crowdsale.registerPresale(
           investor,
           ether(5000),
           presaleRate[ investor ],
           false,
         ).should.be.fulfilled;
+        console.log("registerPresale Gas Used :", registerPresaleTx.receipt.gasUsed);
       });
 
       it("register deferred presale", async () => {
@@ -211,11 +212,12 @@ now:\t\t\t${ now }
 
         const balanceBeforeInvest = await eth.getBalance(investor);
 
-        await crowdsale.buyPresaleTokens(investor, {
+        const buyPresaleTokensTx = await crowdsale.buyPresaleTokens(investor, {
           value: investedAmount,
           from: investor,
         }).should.be.fulfilled;
 
+        console.log("buyPresaleTokens Gas Used :", buyPresaleTokensTx.receipt.gasUsed);
         const balanceAfterInvest = await eth.getBalance(investor);
         const expectedTokenAmount = presaledAmount.mul(presaleRate[ investor ]);
 
@@ -246,10 +248,12 @@ now:\t\t\t${ now }
         const balanceBeforeInvest = await eth.getBalance(investor);
         const crowdsaleTokenBalance1 = await token.balanceOf(crowdsale.address);
 
-        await crowdsale.buyDeferredPresaleTokens(investor, {
+        const buyDeferredPresaleTokensTx = await crowdsale.buyDeferredPresaleTokens(investor, {
           value: investedAmount,
           from: investor,
         }).should.be.fulfilled;
+
+        console.log("buyDeferredPresaleTokensTx Gas Used :", buyDeferredPresaleTokensTx.receipt.gasUsed);
 
         const balanceAfterInvest = await eth.getBalance(investor);
         const crowdsaleTokenBalance2 = await token.balanceOf(crowdsale.address);
@@ -272,13 +276,15 @@ now:\t\t\t${ now }
         (crowdsaleTokenBalance1.sub(crowdsaleTokenBalance2))
           .should.be.bignumber.equal(expectedUserTokenAmount);
 
-        await crowdsale.finalize()
+        const finalizeTx = await crowdsale.finalize()
           .should.be.fulfilled;
 
+        console.log("finalizeTx Gas Used :", finalizeTx.receipt.gasUsed);
         // burn
-        await crowdsale.burnUnpaidTokens()
+        const burnUnpaidTokensTx = await crowdsale.burnUnpaidTokens()
           .should.be.fulfilled;
 
+        console.log("burnUnpaidTokensTx Gas Used :", burnUnpaidTokensTx.receipt.gasUsed);
         (await token.balanceOf(crowdsale.address))
           .should.be.bignumber.equal(0);
       });
@@ -300,13 +306,17 @@ now:\t\t\t${ now }
         const rate = rates[ 0 ];
         const expectedTokenAmount = investmentAmount.mul(rate);
 
-        await kyc.register(investor)
+        const registerTx = await kyc.register(investor)
           .should.be.fulfilled;
 
-        await crowdsale.buyTokens({
+        console.log("registerTx Gas Used :", registerTx.receipt.gasUsed);
+
+        const buyTokensTx = await crowdsale.buyTokens({
           value: investmentAmount,
           from: investor,
         }).should.be.fulfilled;
+
+        console.log("buyTokensTx Gas Used :", buyTokensTx.receipt.gasUsed);
 
         (await token.balanceOf(investor))
           .should.be.bignumber.equal(expectedTokenAmount);
@@ -545,9 +555,10 @@ now:\t\t\t${ now }
           }).should.be.fulfilled;
         }
 
-        await crowdsale.pause()
+        const pauseTx = await crowdsale.pause()
           .should.be.fulfilled;
 
+        console.log("pauseTx Gas Used :", pauseTx.receipt.gasUsed);
         await crowdsale.finalizeWhenForked()
           .should.be.fulfilled;
 
@@ -704,13 +715,14 @@ now:\t\t\t${ now }
           balanceBeforeRefund[ i ] = await eth.getBalance(accounts[ i ]);
         }
         // refund claim
-        await crowdsale.refundAll(numInvestor - 10, { from: owner })
+        crowdsale.refundAll(numInvestor - 11, { from: owner })
           .should.be.fulfilled;
 
         // some investor claim refund
-        await crowdsale.claimRefund(accounts[ 13 ], { from: owner })
+        const claimRefundTx = await crowdsale.claimRefund(accounts[ 13 ], { from: owner })
           .should.be.fulfilled;
 
+        console.log("claimRefund Gas Used :", claimRefundTx.receipt.gasUsed);
         await crowdsale.refundAll(12, { from: owner })
           .should.be.fulfilled;
 
@@ -740,8 +752,10 @@ now:\t\t\t${ now }
           .should.be.rejectedWith(EVMThrow);
 
         // change token owner
-        await crowdsale.changeTokenOwner()
+        const changeTokenOwnerTx = await crowdsale.changeTokenOwner()
           .should.be.fulfilled;
+
+        console.log("changeTokenOwner Gas Used :", changeTokenOwnerTx.receipt.gasUsed);
 
         (await token.owner())
           .should.be.equal(newTokenOwner);
