@@ -1,3 +1,6 @@
+### Contracts
+- KYC.sol: Account registery contract for crowdsale, deployed at [0x8fc95Edf1C8720510809d881b1E3A44aB4B8d031](https://etherscan.io/address/0x07bfd26f09a90564fbc72f77758b0259b65b783b)
+
 ### [Documents](./docs)
 
 ### Prerequisite
