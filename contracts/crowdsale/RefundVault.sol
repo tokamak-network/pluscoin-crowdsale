@@ -29,8 +29,8 @@ contract RefundVault is Ownable, SafeMath{
    * @dev This constructor sets the addresses of multi-signature wallet and
    * 5 reserve wallets.
    * and forwarding it if crowdsale is successful.
-   * @params _devMultiSig address The address of multi-signature wallet.
-   * @params _reserveWallet address[5] The addresses of reserve wallet.
+   * @param _devMultiSig address The address of multi-signature wallet.
+   * @param _reserveWallet address[5] The addresses of reserve wallet.
    */
   function RefundVault(address _devMultiSig, address[5] _reserveWallet) {
     state = State.Active;
@@ -42,7 +42,7 @@ contract RefundVault is Ownable, SafeMath{
    * @dev This function is called when user buy tokens. Only RefundVault
    * contract stores the Ether user sent which forwarded from crowdsale
    * contract.
-   * @params investor address The address who buy the token from crowdsale.
+   * @param investor address The address who buy the token from crowdsale.
    */
   function deposit(address investor) onlyOwner payable {
     require(state == State.Active);
