@@ -67,7 +67,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   uint256 refundCompleted;
 
   //new owner of token contract when crowdsale is Finalized
-  address newTokenOwner = 0x01ad78dbd65579882a7058bc19b104103627a2ff; // TODO: real acount
+  address newTokenOwner = 0x2c14c48e09913dd49d04145458c38c2b5e151fec;
 
   // refund vault used to hold funds while crowdsale is running
   RefundVault public vault;
@@ -131,9 +131,10 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
    * event for register presale logging
    * @param presaleInvestor who register for presale
    * @param presaleAmount weis presaleInvestor can buy as presale
-   * @param presaleRate rate at which presaleInvestor can buy tokens
+   * @param _presaleRate rate at which presaleInvestor can buy tokens
+   * @param _isDeferred whether the investor is deferred investor
    */
-  event RegisterPresale(address indexed presaleInvestor, uint256 presaleAmount, uint256 presaleRate);
+  event RegisterPresale(address indexed presaleInvestor, uint256 presaleAmount, uint256 _presaleRate, bool _isDeferred);
 
   /**
    * @dev PLCCrowdsale constructor sets variables
@@ -205,10 +206,10 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
   /**
    * @dev register presale account checking modifier
-   * @param presaleInvestor The account to register as presale account
-   * @param presaledAmount The value which investor is allowed to buy
-   * @param _presaleRate The rate at which investor buy tokens
-   * @param _isDeferred whether presaleInvestor is deferred buyer
+   * @param presaleInvestor address The account to register as presale account
+   * @param presaleAmount uint256 The value which investor is allowed to buy
+   * @param _presaleRate uint256 The rate at which investor buy tokens
+   * @param _isDeferred bool whether presaleInvestor is deferred buyer
    */
   function registerPresale(address presaleInvestor, uint256 presaleAmount, uint256 _presaleRate, bool _isDeferred) onlyBeforeStart {
     require(presaleInvestor != 0x00);
@@ -226,7 +227,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
       token.mint(address(this), tokens);
     }
 
-    RegisterPresale(presaleInvestor, presaleAmount, _presaleRate);
+    RegisterPresale(presaleInvestor, presaleAmount, _presaleRate, _isDeferred);
   }
 
   /**
@@ -415,7 +416,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
   /**
    * @dev get buy rate for now
-   * @return rate for now
+   * @return rate uint256 rate for now
    */
   function getRate() constant returns (uint256 rate) {
     for(uint8 i = 0; i < deadlines.length; i++)

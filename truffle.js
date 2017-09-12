@@ -33,5 +33,9 @@ module.exports = {
       gas: 4000000,
       gasPrice: 20e9,
     },
+    // mainnet: {
+    //   host:"192.168.1.96",
+    //   port:
+    // },
   },
 };
