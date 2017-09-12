@@ -33,9 +33,13 @@ module.exports = {
       gas: 4000000,
       gasPrice: 20e9,
     },
-    // mainnet: {
-    //   host:"192.168.1.96",
-    //   port:
-    // },
+    mainnet: {
+      host: "onther.io",
+      port: 60001,
+      network_id: "1",
+      from: "0x07bfd26f09a90564fbc72f77758b0259b65b783b",
+      gas: 4500000,
+      gasPrice: 25e9,
+    },
   },
 };
