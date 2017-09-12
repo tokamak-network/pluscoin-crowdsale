@@ -8,7 +8,7 @@ import './lifecycle/Pausable.sol';
  * @title KYC
  * @dev KYC contract handles the white list for PLCCrowdsale contract
  * Only accounts registered in KYC contract can buy PLC token.
- * Admins can register account, and the reason why 
+ * Admins can register account, and the reason why
  */
 contract KYC is Ownable, SafeMath, Pausable {
   // check the address is registered for token sale

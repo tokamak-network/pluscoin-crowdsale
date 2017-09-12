@@ -90,7 +90,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   /**
    * @dev Checks whether ico is started
    */
-  modifier onlyAfterStart(){
+  modifier onlyAfterStart() {
     require(now >= startTime && now <= endTime);
     _;
   }
@@ -98,7 +98,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   /**
    * @dev Checks whether ico is not started
    */
-  modifier onlyBeforeStart(){
+  modifier onlyBeforeStart() {
     require(now < startTime);
     _;
   }
