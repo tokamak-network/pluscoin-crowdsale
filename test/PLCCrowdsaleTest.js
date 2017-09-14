@@ -52,7 +52,7 @@ contract(
 
     let reserveWallet;
 
-    const newTokenOwner = "0x01ad78dbd65579882a7058bc19b104103627a2ff";
+    const newTokenOwner = "0x2c14c48e09913dd49d04145458c38c2b5e151fec";
 
     before(async () => {
       reserveWallet = [
@@ -257,24 +257,38 @@ now:\t\t\t${ now }
 
         const balanceAfterInvest = await eth.getBalance(investor);
         const crowdsaleTokenBalance2 = await token.balanceOf(crowdsale.address);
-        const expectedUserTokenAmount = investedAmount.mul(rate);
-        const expectedTokenTotalSupply = presaledAmount.mul(rate);
 
+        const expectedTokenTotalSupply = presaledAmount.mul(rate).mul(10).div(7);
+        const expectedUserTokenAmount = investedAmount.mul(rate);
+        const expectedDevTokenAmount = expectedUserTokenAmount.mul(2).div(7);
+        const expectedReserveTokenAmount = expectedUserTokenAmount.mul(1).div(7);
+        const expectedReducedTokenAmountInCrowdsale = expectedUserTokenAmount.add(expectedDevTokenAmount).add(expectedReserveTokenAmount);
+
+
+        // check total token amount
+        (await token.totalSupply()).toNumber()
+          .should.be.within(
+            expectedTokenTotalSupply.toNumber() - 10**18,
+            expectedTokenTotalSupply.toNumber() + 10**18
+          );
+
+        // check user token amount
         (await token.balanceOf(investor))
           .should.be.bignumber.equal(expectedUserTokenAmount);
 
-        (await token.totalSupply())
-          .should.be.bignumber.equal(expectedTokenTotalSupply);
 
-        // ether balance of investor
+        // check token balance of crowdsale
+        (crowdsaleTokenBalance1.sub(crowdsaleTokenBalance2)).toNumber()
+          .should.be.within(
+            expectedReducedTokenAmountInCrowdsale.toNumber() - 10**18,
+            expectedReducedTokenAmountInCrowdsale.toNumber() + 10**18
+          );
+
+        // check ether balance of investor
         (balanceBeforeInvest - balanceAfterInvest).should.be.within(
           investedAmount.toNumber(),
           investedAmount.add(ether(1)).toNumber(),
         );
-
-        // token balance of crowdsale
-        (crowdsaleTokenBalance1.sub(crowdsaleTokenBalance2))
-          .should.be.bignumber.equal(expectedUserTokenAmount);
 
         const finalizeTx = await crowdsale.finalize()
           .should.be.fulfilled;
@@ -474,9 +488,10 @@ now:\t\t\t${ now }
 
       it("can finalized during the sale (maxReached)", async () => {
         const investmentAmount = ether(5000);
+        const numInvestor = 20;
 
         // 20 accounts, total 100,000 ether
-        for (const account of accounts.slice(0, 20)) {
+        for (const account of accounts.slice(0, numInvestor)) {
           await kyc.register(account)
             .should.be.fulfilled;
 
@@ -496,6 +511,7 @@ now:\t\t\t${ now }
 
         await crowdsale.finalize()
           .should.be.fulfilled;
+
       });
 
       it("should reject payments after finalized", async () => {
@@ -751,6 +767,8 @@ now:\t\t\t${ now }
         await token.pause()
           .should.be.rejectedWith(EVMThrow);
 
+        await crowdsale.finalize()
+          .should.be.fulfilled;
         // change token owner
         const changeTokenOwnerTx = await crowdsale.changeTokenOwner()
           .should.be.fulfilled;

@@ -47,6 +47,9 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   mapping (address => uint256) public buyerFunded;
   mapping (address => uint256) public buyerDeferredSaleFunded;
 
+  // amount of tokens minted for deferredBuyers
+  uint256 public deferredTotalTokens;
+
 
   // buyable interval in block number 20
   uint256 constant public maxCallFrequency = 20;
@@ -157,8 +160,20 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     uint256 _maxEtherCap,
     uint256 _minEtherCap)
   {
+    //timelines check
+    for(uint8 i = 0; i < _timelines.length-1; i++){
+      require(_timelines[i] < _timelines[i+1]);
+    }
+    require(_timelines[0] >= now);
 
-    // require(_timelines[0] >= now);
+    //address check
+    require(_kyc != 0x00 && _token != 0x00 && _refundVault != 0x00 && _devMultisig != 0x00);
+    for(i = 0; i < _reserveWallet.length; i++){
+      require(_reserveWallet[i] != 0x00);
+    }
+
+    //cap check
+    require(_minEtherCap < _maxEtherCap);
 
     kyc   = KYC(_kyc);
     token = PLC(_token);
@@ -223,8 +238,14 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     if(_isDeferred){
       weiRaised = add(weiRaised, presaleAmount);
 
-      uint256 tokens = mul(presaleAmount, _presaleRate);
-      token.mint(address(this), tokens);
+      uint256 deferredInvestorToken = mul(presaleAmount, _presaleRate);
+      uint256 deferredDevToken = div(mul(deferredInvestorToken, 20), 70);
+      uint256 deferredReserveToken = div(mul(deferredInvestorToken, 10), 70);
+
+      uint256 totalAmount = add(deferredInvestorToken, add(deferredDevToken, deferredReserveToken));
+      token.mint(address(this), totalAmount);
+
+      deferredTotalTokens = add(deferredTotalTokens, totalAmount);
     }
 
     RegisterPresale(presaleInvestor, presaleAmount, _presaleRate, _isDeferred);
@@ -266,15 +287,32 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
       pushBuyerList(beneficiary);
 
       token.transfer(beneficiary, tokens);
+
       DeferredPresaleTokenPurchase(msg.sender, beneficiary, toFund, tokens);
 
-      //ether distribution straight to devMultisig & reserveWallet
-      uint256 devAmount = div(toFund, 10);
-      devMultisig.transfer(devAmount);
+      // devAmount 20%
+      uint256 devAmount = div(mul(tokens, 20), 70);
+      token.grantVestedTokens(
+        devMultisig,
+        devAmount,
+        uint64(endTime),
+        uint64(endTime),
+        uint64(endTime + 1 years),
+        false,
+        false);
 
-      uint reserveAmount = div(mul(toFund, 9), 10);
+      // reserve 10%
       for(uint8 i = 0; i < 5; i++){
-        reserveWallet[i].transfer(div(reserveAmount, 5));
+        token.transfer(reserveWallet[i], div(mul(tokens,2),70));
+      }
+
+      //ether distribution straight to devMultisig & reserveWallet
+      uint256 devEtherAmount = div(toFund, 10);
+      devMultisig.transfer(devEtherAmount);
+
+      uint256 reserveEtherAmount = div(mul(toFund, 9), 10);
+      for(i = 0; i < 5; i++){
+        reserveWallet[i].transfer(div(reserveEtherAmount, 5));
       }
     }
 
@@ -471,22 +509,23 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
       vault.close();
 
       uint256 totalToken = token.totalSupply();
+      uint256 tokenSold = totalToken - deferredTotalTokens;
 
       // dev team 10%
-      uint256 devAmount = div(mul(totalToken, 20), 70);
+      uint256 devAmount = div(mul(tokenSold, 20), 70);
       token.mint(address(this), devAmount);
       token.grantVestedTokens(
         devMultisig,
         devAmount,
-        uint64(now),
-        uint64(now),
-        uint64(now + 1 years),
+        uint64(endTime),
+        uint64(endTime),
+        uint64(endTime + 1 years),
         false,
         false);
 
       // reserve 10%
       for(uint8 i = 0; i < 5; i++){
-        token.mint(reserveWallet[i], div(mul(totalToken,2),70));
+        token.mint(reserveWallet[i], div(mul(tokenSold,2),70));
       }
     } else {
       vault.enableRefunds();
