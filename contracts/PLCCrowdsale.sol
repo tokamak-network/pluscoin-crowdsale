@@ -45,7 +45,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
   // amount of ether funded for each buyer
   // bool: true if deferred otherwise false
-  mapping (bool => mapping (address => uint256)) _buyerFunded;
+  mapping (bool => mapping (address => uint256)) public buyerFunded;
 
   // amount of tokens minted for deferredBuyers
   uint256 public deferredTotalTokens;
@@ -213,7 +213,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
    * @param _addr address Account to push into buyerList
    */
   function pushBuyerList(address _addr) internal {
-		if (_buyerFunded[false][_addr] > 0) {
+		if (buyerFunded[false][_addr] > 0) {
 			buyerList.push(_addr);
 		}
 	}
@@ -266,11 +266,11 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
     uint256 weiAmount = msg.value;
     require(weiAmount != 0);
-    uint256 totalAmount = add(_buyerFunded[true][beneficiary], weiAmount);
+    uint256 totalAmount = add(buyerFunded[true][beneficiary], weiAmount);
 
     uint256 toFund;
     if (totalAmount > guaranteedLimit) {
-      toFund = sub(guaranteedLimit, _buyerFunded[true][beneficiary]);
+      toFund = sub(guaranteedLimit, buyerFunded[true][beneficiary]);
     } else {
       toFund = weiAmount;
     }
@@ -314,11 +314,11 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
     // calculate eth amount
     uint256 weiAmount = msg.value;
-    uint256 totalAmount = add(_buyerFunded[false][beneficiary], weiAmount);
+    uint256 totalAmount = add(buyerFunded[false][beneficiary], weiAmount);
 
     uint256 toFund;
     if (totalAmount > guaranteedLimit) {
-      toFund = sub(guaranteedLimit, _buyerFunded[false][beneficiary]);
+      toFund = sub(guaranteedLimit, buyerFunded[false][beneficiary]);
     } else {
       toFund = weiAmount;
     }
@@ -347,15 +347,15 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
     // check validity
     require(validPurchase());
-    require(_buyerFunded[false][msg.sender] < maxGuaranteedLimit);
+    require(buyerFunded[false][msg.sender] < maxGuaranteedLimit);
 
     // calculate eth amount
     uint256 weiAmount = msg.value;
-    uint256 totalAmount = add(_buyerFunded[false][msg.sender], weiAmount);
+    uint256 totalAmount = add(buyerFunded[false][msg.sender], weiAmount);
 
     uint256 toFund;
     if (totalAmount > maxGuaranteedLimit) {
-      toFund = sub(maxGuaranteedLimit, _buyerFunded[false][msg.sender]);
+      toFund = sub(maxGuaranteedLimit, buyerFunded[false][msg.sender]);
     } else {
       toFund = weiAmount;
     }
@@ -419,7 +419,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
         weiRaised = add(weiRaised, _toFund);
       }
 
-      _buyerFunded[_isDeferred][_beneficiary] = add(_buyerFunded[_isDeferred][_beneficiary], _toFund);
+      buyerFunded[_isDeferred][_beneficiary] = add(buyerFunded[_isDeferred][_beneficiary], _toFund);
       pushBuyerList(_beneficiary);
 
       if (!_isDeferred) {
