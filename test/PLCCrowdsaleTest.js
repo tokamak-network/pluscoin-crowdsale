@@ -785,8 +785,6 @@ now:\t\t\t${ now }
 
         (await token.owner())
           .should.be.equal(newTokenOwner);
-
-        console.log("changeTokenOwner Gas Used :", changeTokenOwnerTx.receipt.gasUsed);
       });
     });
   },

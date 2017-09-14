@@ -487,10 +487,11 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   function finalize() {
     require(!isFinalized);
     require(hasEnded() || maxReached());
-    isFinalized = true;
 
     finalization();
     Finalized();
+
+    isFinalized = true;
   }
 
   /**
@@ -513,7 +514,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
       vault.enableRefunds();
     }
     token.finishMinting();
-    changeTokenOwner();
+    token.transferOwnership(newTokenOwner);
   }
 
   /**
@@ -574,14 +575,6 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
    */
   function minReached() public constant returns (bool) {
     return weiRaised >= minEtherCap;
-  }
-
-  /**
-   * @dev should change token owner from crowdsale to newTokenOwner when crowdsale is finalized
-   */
-  function changeTokenOwner() internal {
-    require(isFinalized);
-    token.transferOwnership(newTokenOwner);
   }
 
   /**
