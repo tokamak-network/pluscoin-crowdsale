@@ -487,11 +487,10 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   function finalize() {
     require(!isFinalized);
     require(hasEnded() || maxReached());
+    isFinalized = true;
 
     finalization();
     Finalized();
-
-    isFinalized = true;
   }
 
   /**
@@ -522,11 +521,10 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
    */
   function finalizeWhenForked() onlyOwner whenPaused {
     require(!isFinalized);
+    isFinalized = true;
 
     vault.enableRefunds();
     token.finishMinting();
-
-    isFinalized = true;
   }
 
   /**
