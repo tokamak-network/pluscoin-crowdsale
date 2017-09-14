@@ -44,8 +44,8 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   mapping (address => bool) public isDeferred;
 
   // amount of ether funded for each buyer
-  mapping (address => uint256) public buyerFunded;
-  mapping (address => uint256) public buyerDeferredSaleFunded;
+  // bool: true if deferred otherwise false
+  mapping (bool => mapping (address => uint256)) _buyerFunded;
 
   // amount of tokens minted for deferredBuyers
   uint256 public deferredTotalTokens;
@@ -200,9 +200,8 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
    * @dev PLCCrowdsale fallback function for buying Tokens
    */
   function () payable {
-    if(isDeferred[msg.sender]){
+    if(isDeferred[msg.sender])
       buyDeferredPresaleTokens(msg.sender);
-    }
     else if(now < startTime)
       buyPresaleTokens(msg.sender);
     else
@@ -214,7 +213,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
    * @param _addr address Account to push into buyerList
    */
   function pushBuyerList(address _addr) internal {
-		if (buyerFunded[_addr] > 0 || buyerDeferredSaleFunded[_addr] > 0) {
+		if (_buyerFunded[false][_addr] > 0) {
 			buyerList.push(_addr);
 		}
 	}
@@ -267,11 +266,11 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
     uint256 weiAmount = msg.value;
     require(weiAmount != 0);
-    uint256 totalAmount = add(buyerDeferredSaleFunded[beneficiary], weiAmount);
+    uint256 totalAmount = add(_buyerFunded[true][beneficiary], weiAmount);
 
     uint256 toFund;
     if (totalAmount > guaranteedLimit) {
-      toFund = sub(guaranteedLimit, buyerDeferredSaleFunded[beneficiary]);
+      toFund = sub(guaranteedLimit, _buyerFunded[true][beneficiary]);
     } else {
       toFund = weiAmount;
     }
@@ -279,49 +278,22 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     require(weiAmount >= toFund);
 
     uint256 tokens = mul(toFund, presaleRate[beneficiary]);
-
-    // forward ether to vault
-    if (toFund > 0) {
-      // update state
-      buyerDeferredSaleFunded[beneficiary] = add(buyerDeferredSaleFunded[beneficiary], toFund);
-      pushBuyerList(beneficiary);
-
-      token.transfer(beneficiary, tokens);
-
-      DeferredPresaleTokenPurchase(msg.sender, beneficiary, toFund, tokens);
-
-      // devAmount 20%
-      uint256 devAmount = div(mul(tokens, 20), 70);
-      token.grantVestedTokens(
-        devMultisig,
-        devAmount,
-        uint64(endTime),
-        uint64(endTime),
-        uint64(endTime + 1 years),
-        false,
-        false);
-
-      // reserve 10%
-      for(uint8 i = 0; i < 5; i++){
-        token.transfer(reserveWallet[i], div(mul(tokens,2),70));
-      }
-
-      //ether distribution straight to devMultisig & reserveWallet
-      uint256 devEtherAmount = div(toFund, 10);
-      devMultisig.transfer(devEtherAmount);
-
-      uint256 reserveEtherAmount = div(mul(toFund, 9), 10);
-      for(i = 0; i < 5; i++){
-        reserveWallet[i].transfer(div(reserveEtherAmount, 5));
-      }
-    }
-
     uint256 toReturn = sub(weiAmount, toFund);
-    // return ether if needed
-    if (toReturn > 0) {
-      msg.sender.transfer(toReturn);
-    }
 
+    buy(beneficiary, tokens, toFund, toReturn, true);
+
+
+    uint256 devAmount = div(mul(tokens, 20), 70);
+    uint256 eachReserveAmount = div(mul(tokens, 2), 70);
+
+    distributeToken(devAmount, eachReserveAmount, true);
+
+    uint256 devEtherAmount = div(toFund, 10);
+    uint256 eachReserveEtherAmount = div(mul(toFund, 9), 50);
+
+    distributeEther(devEtherAmount, eachReserveEtherAmount);
+
+    DeferredPresaleTokenPurchase(msg.sender, beneficiary, toFund, tokens);
   }
 
   /**
@@ -342,49 +314,24 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
     // calculate eth amount
     uint256 weiAmount = msg.value;
-    uint256 totalAmount = add(buyerFunded[beneficiary], weiAmount);
+    uint256 totalAmount = add(_buyerFunded[false][beneficiary], weiAmount);
 
     uint256 toFund;
     if (totalAmount > guaranteedLimit) {
-      toFund = sub(guaranteedLimit, buyerFunded[beneficiary]);
+      toFund = sub(guaranteedLimit, _buyerFunded[false][beneficiary]);
     } else {
       toFund = weiAmount;
     }
 
+    require(toFund > 0);
     require(weiAmount >= toFund);
 
     uint256 tokens = mul(toFund, presaleRate[beneficiary]);
-
-    // forward ether to vault
-    if (toFund > 0) {
-      // update state
-      weiRaised = add(weiRaised, toFund);
-      buyerFunded[beneficiary] = add(buyerFunded[beneficiary], toFund);
-      pushBuyerList(beneficiary);
-
-      // 1 week lock
-      token.mint(address(this), tokens);
-      token.grantVestedTokens(
-        beneficiary,
-        tokens,
-        uint64(endTime),
-        uint64(endTime + 1 weeks),
-        uint64(endTime + 1 weeks),
-        false,
-        false);
-
-      PresaleTokenPurchase(msg.sender, beneficiary, toFund, tokens);
-
-      forwardFunds(toFund);
-    }
-
     uint256 toReturn = sub(weiAmount, toFund);
 
-    // return ether if needed
-    if (toReturn > 0) {
-      msg.sender.transfer(toReturn);
-    }
-
+    buy(beneficiary, tokens, toFund, toReturn, false);
+    forwardFunds(toFund);
+    PresaleTokenPurchase(msg.sender, beneficiary, toFund, tokens);
   }
 
   /**
@@ -400,15 +347,15 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
     // check validity
     require(validPurchase());
-    require(buyerFunded[msg.sender] < maxGuaranteedLimit);
+    require(_buyerFunded[false][msg.sender] < maxGuaranteedLimit);
 
     // calculate eth amount
     uint256 weiAmount = msg.value;
-    uint256 totalAmount = add(buyerFunded[msg.sender], weiAmount);
+    uint256 totalAmount = add(_buyerFunded[false][msg.sender], weiAmount);
 
     uint256 toFund;
     if (totalAmount > maxGuaranteedLimit) {
-      toFund = sub(maxGuaranteedLimit, buyerFunded[msg.sender]);
+      toFund = sub(maxGuaranteedLimit, _buyerFunded[false][msg.sender]);
     } else {
       toFund = weiAmount;
     }
@@ -417,39 +364,15 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
       toFund = sub(maxEtherCap, weiRaised);
     }
 
+    require(toFund > 0);
     require(weiAmount >= toFund);
 
     uint256 tokens = mul(toFund, getRate());
-
-    // forward ether to vault
-    if (toFund > 0) {
-      // update state
-      weiRaised = add(weiRaised, toFund);
-      buyerFunded[msg.sender] = add(buyerFunded[msg.sender], toFund);
-      pushBuyerList(msg.sender);
-
-      // 1 week lock
-      token.mint(address(this), tokens);
-      token.grantVestedTokens(
-        msg.sender,
-        tokens,
-        uint64(endTime),
-        uint64(endTime + 1 weeks),
-        uint64(endTime + 1 weeks),
-        false,
-        false);
-
-      TokenPurchase(msg.sender, msg.sender, toFund, tokens);
-
-      forwardFunds(toFund);
-    }
-
     uint256 toReturn = sub(weiAmount, toFund);
 
-    // return ether if needed
-    if (toReturn > 0) {
-      msg.sender.transfer(toReturn);
-    }
+    buy(msg.sender, tokens, toFund, toReturn, false);
+    forwardFunds(toFund);
+    TokenPurchase(msg.sender, msg.sender, toFund, tokens);
   }
 
   /**
@@ -478,6 +401,76 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   function validPurchase() internal constant returns (bool) {
     bool nonZeroPurchase = msg.value != 0;
     return nonZeroPurchase && !maxReached();
+  }
+
+  function buy(
+    address _beneficiary,
+    uint256 _tokens,
+    uint256 _toFund,
+    uint256 _toReturn,
+    bool _isDeferred)
+    internal
+  {
+    // forward ether to vault
+    if (_toFund > 0) {
+      // update state
+
+      if (!_isDeferred) {
+        weiRaised = add(weiRaised, _toFund);
+      }
+
+      _buyerFunded[_isDeferred][_beneficiary] = add(_buyerFunded[_isDeferred][_beneficiary], _toFund);
+      pushBuyerList(_beneficiary);
+
+      if (!_isDeferred) {
+        token.mint(address(this), _tokens);
+      }
+
+      // 1 week lock
+      token.grantVestedTokens(
+        _beneficiary,
+        _tokens,
+        uint64(endTime),
+        uint64(endTime + 1 weeks),
+        uint64(endTime + 1 weeks),
+        false,
+        false);
+
+    }
+
+    // return ether if needed
+    if (_toReturn > 0) {
+      msg.sender.transfer(_toReturn);
+    }
+  }
+
+  function distributeToken(uint256 devAmount, uint256 eachReserveAmount, bool _isDeferred) internal {
+    token.grantVestedTokens(
+      devMultisig,
+      devAmount,
+      uint64(endTime),
+      uint64(endTime),
+      uint64(endTime + 1 years),
+      false,
+      false);
+
+    if (_isDeferred) {
+      for(uint8 i = 0; i < 5; i++) {
+        token.transfer(reserveWallet[i], eachReserveAmount);
+      }
+    } else {
+      for(uint8 j = 0; j < 5; j++) {
+        token.mint(reserveWallet[j], eachReserveAmount);
+      }
+    }
+  }
+
+  function distributeEther(uint256 devAmount, uint256 eachReserveAmount) internal {
+    devMultisig.transfer(devAmount);
+
+    for(uint8 i = 0; i < 5; i++){
+      reserveWallet[i].transfer(eachReserveAmount);
+    }
   }
 
   /**
@@ -509,28 +502,19 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
       vault.close();
 
       uint256 totalToken = token.totalSupply();
-      uint256 tokenSold = totalToken - deferredTotalTokens;
+      uint256 tokenSold = sub(totalToken, deferredTotalTokens);
 
-      // dev team 10%
+      // dev team 20%, reserve 10 %
       uint256 devAmount = div(mul(tokenSold, 20), 70);
-      token.mint(address(this), devAmount);
-      token.grantVestedTokens(
-        devMultisig,
-        devAmount,
-        uint64(endTime),
-        uint64(endTime),
-        uint64(endTime + 1 years),
-        false,
-        false);
+      uint256 eachReserveAmount = div(div(mul(tokenSold, 10), 70), 5);
 
-      // reserve 10%
-      for(uint8 i = 0; i < 5; i++){
-        token.mint(reserveWallet[i], div(mul(tokenSold,2),70));
-      }
+      token.mint(address(this), devAmount);
+      distributeToken(devAmount, eachReserveAmount, false);
     } else {
       vault.enableRefunds();
     }
     token.finishMinting();
+    changeTokenOwner();
   }
 
   /**
@@ -597,7 +581,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   /**
    * @dev should change token owner from crowdsale to newTokenOwner when crowdsale is finalized
    */
-  function changeTokenOwner() onlyOwner {
+  function changeTokenOwner() internal {
     require(isFinalized);
     token.transferOwnership(newTokenOwner);
   }

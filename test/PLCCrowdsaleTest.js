@@ -264,24 +264,22 @@ now:\t\t\t${ now }
         const expectedReserveTokenAmount = expectedUserTokenAmount.mul(1).div(7);
         const expectedReducedTokenAmountInCrowdsale = expectedUserTokenAmount.add(expectedDevTokenAmount).add(expectedReserveTokenAmount);
 
-
         // check total token amount
         (await token.totalSupply()).toNumber()
           .should.be.within(
-            expectedTokenTotalSupply.toNumber() - 10**18,
-            expectedTokenTotalSupply.toNumber() + 10**18
+            expectedTokenTotalSupply.toNumber() - 10 ** 18,
+            expectedTokenTotalSupply.toNumber() + 10 ** 18,
           );
 
         // check user token amount
         (await token.balanceOf(investor))
           .should.be.bignumber.equal(expectedUserTokenAmount);
 
-
         // check token balance of crowdsale
         (crowdsaleTokenBalance1.sub(crowdsaleTokenBalance2)).toNumber()
           .should.be.within(
-            expectedReducedTokenAmountInCrowdsale.toNumber() - 10**18,
-            expectedReducedTokenAmountInCrowdsale.toNumber() + 10**18
+            expectedReducedTokenAmountInCrowdsale.toNumber() - 10 ** 18,
+            expectedReducedTokenAmountInCrowdsale.toNumber() + 10 ** 18,
           );
 
         // check ether balance of investor
@@ -511,7 +509,6 @@ now:\t\t\t${ now }
 
         await crowdsale.finalize()
           .should.be.fulfilled;
-
       });
 
       it("should reject payments after finalized", async () => {
@@ -769,11 +766,6 @@ now:\t\t\t${ now }
 
         await crowdsale.finalize()
           .should.be.fulfilled;
-        // change token owner
-        const changeTokenOwnerTx = await crowdsale.changeTokenOwner()
-          .should.be.fulfilled;
-
-        console.log("changeTokenOwner Gas Used :", changeTokenOwnerTx.receipt.gasUsed);
 
         (await token.owner())
           .should.be.equal(newTokenOwner);
