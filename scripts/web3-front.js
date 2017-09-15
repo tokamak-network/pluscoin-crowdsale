@@ -1,4 +1,4 @@
-const Web3 = require("web3");
+const Web3 = require("web3"); // web3@0.20
 
 const providerUrl = "https://ropsten.infura.io";
 const web3 = new Web3(new Web3.providers.HttpProvider(providerUrl));
