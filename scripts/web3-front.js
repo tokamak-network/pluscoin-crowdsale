@@ -24,6 +24,7 @@ const baseRate = 200;
 
 const currentRate = crowdsale.getRate();
 const weiRaised = crowdsale.weiRaised();
+const totalSupply = token.totalSupply();
 const userTokenBalance = token.balanceOf(userAddress);
 const userEthFunded = crowdsale.buyerFunded(false, userAddress).add(crowdsale.buyerFunded(true, userAddress));
 
@@ -34,6 +35,7 @@ const toFormatEth = wei => wei.div(1e18).toNumber().toFixed(2);
 console.log(`
   bonus rate : ${ bonusRate.toFixed(0) }%
   total eth funded : ${ toFormatEth(weiRaised) }
+  plc total supply : ${ toFormatEth(totalSupply) }
   user plc : ${ toFormatEth(userTokenBalance) }
   user eth funded : ${ toFormatEth(userEthFunded) }
 `);
