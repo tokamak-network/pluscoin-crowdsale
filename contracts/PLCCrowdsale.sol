@@ -225,7 +225,10 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
    * @param _presaleRate uint256 The rate at which investor buy tokens
    * @param _isDeferred bool whether presaleInvestor is deferred buyer
    */
-  function registerPresale(address presaleInvestor, uint256 presaleAmount, uint256 _presaleRate, bool _isDeferred) onlyBeforeStart {
+  function registerPresale(address presaleInvestor, uint256 presaleAmount, uint256 _presaleRate, bool _isDeferred)
+    onlyBeforeStart
+    onlyOwner
+  {
     require(presaleInvestor != 0x00);
     require(presaleAmount > 0);
     require(_presaleRate > 0);
