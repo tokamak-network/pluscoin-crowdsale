@@ -8,6 +8,8 @@ const PLC = artifacts.require("PLC.sol");
 const RefundVault = artifacts.require("crowdsale/RefundVault.sol");
 const MultiSig = artifacts.require("wallet/MultiSigWallet.sol");
 
+let kycAddress;
+
 module.exports = async function (deployer, network, accounts) {
   console.log("[accounts]");
   accounts.forEach((account, i) => console.log(`[${ i }]  ${ account }`));
@@ -56,8 +58,13 @@ module.exports = async function (deployer, network, accounts) {
       "0x8afe4672155b070e0645c0c9fc50d8eb3eab9a7e",
     ];
 
-    const kyc = await KYC.new();
-    console.log("kyc deployed at", kyc.address);
+    if (network === "mainnet") {
+      kycAddress = "0x8fc95Edf1C8720510809d881b1E3A44aB4B8d031";
+    } else {
+      const kyc = await KYC.new();
+      kycAddress = kyc.address;
+    }
+    console.log("kyc deployed at", kycAddress);
 
     const multiSig = await MultiSig.new(reserveWallet, reserveWallet.length - 1); // 4 out of 5
     console.log("multiSig deployed at", multiSig.address);
@@ -70,7 +77,7 @@ module.exports = async function (deployer, network, accounts) {
 
     /*eslint-disable */
     const crowdsale = await PLCCrowdsale.new(
-      kyc.address,
+      kycAddress,
       token.address,
       vault.address,
       multiSig.address,
