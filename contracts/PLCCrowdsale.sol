@@ -232,6 +232,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     require(presaleInvestor != 0x00);
     require(presaleAmount > 0);
     require(_presaleRate > 0);
+    require(presaleGuaranteedLimit[presaleInvestor] == 0);
 
     presaleGuaranteedLimit[presaleInvestor] = presaleAmount;
     presaleRate[presaleInvestor] = _presaleRate;
