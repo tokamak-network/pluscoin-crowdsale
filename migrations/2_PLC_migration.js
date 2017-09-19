@@ -54,8 +54,6 @@ module.exports = async function (deployer, network, accounts) {
       "0x922aa0d0e720caf10bcd7a02be187635a6f36ab0",
       "0x6267901dbb0055e12ea895fc768b68486d57dcf8",
       "0x236df55249ac7a6dfea613cd69ccd014c3cb8445",
-      "0xceca4d86a45cfef2e6431b4a871123a23bef6d87",
-      "0x8afe4672155b070e0645c0c9fc50d8eb3eab9a7e",
     ];
 
     if (network === "mainnet") {

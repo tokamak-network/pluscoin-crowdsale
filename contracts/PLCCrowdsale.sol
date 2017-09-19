@@ -79,7 +79,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   address devMultisig;
 
   //reserve
-  address[5] reserveWallet;
+  address[] reserveWallet;
 
   /**
    * @dev Checks whether buyer is sending transaction too frequently
@@ -155,7 +155,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     address _token,
     address _refundVault,
     address _devMultisig,
-    address[5] _reserveWallet,
+    address[] _reserveWallet,
     uint64[6] _timelines, // [startTime, ... , endTime]
     uint256 _maxEtherCap,
     uint256 _minEtherCap)
@@ -289,12 +289,12 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
 
     uint256 devAmount = div(mul(tokens, 20), 70);
-    uint256 eachReserveAmount = div(mul(tokens, 2), 70);
+    uint256 eachReserveAmount = div(div(mul(tokens, 10), 70), reserveWallet.length);
 
     distributeToken(devAmount, eachReserveAmount, true);
 
     uint256 devEtherAmount = div(toFund, 10);
-    uint256 eachReserveEtherAmount = div(mul(toFund, 9), 50);
+    uint256 eachReserveEtherAmount = div(div(mul(toFund, 9), 10), reserveWallet.length);
 
     distributeEther(devEtherAmount, eachReserveEtherAmount);
 
@@ -416,15 +416,11 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     bool _isDeferred)
     internal
   {
-    // update state
-    if (!_isDeferred) {
-      weiRaised = add(weiRaised, _toFund);
-    }
-
     pushBuyerList(_beneficiary);
     buyerFunded[_isDeferred][_beneficiary] = add(buyerFunded[_isDeferred][_beneficiary], _toFund);
 
     if (!_isDeferred) {
+      weiRaised = add(weiRaised, _toFund);
       token.mint(address(this), _tokens);
     }
 
@@ -455,11 +451,11 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
       false);
 
     if (_isDeferred) {
-      for(uint8 i = 0; i < 5; i++) {
+      for(uint8 i = 0; i < reserveWallet.length; i++) {
         token.transfer(reserveWallet[i], eachReserveAmount);
       }
     } else {
-      for(uint8 j = 0; j < 5; j++) {
+      for(uint8 j = 0; j < reserveWallet.length; j++) {
         token.mint(reserveWallet[j], eachReserveAmount);
       }
     }
@@ -468,7 +464,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   function distributeEther(uint256 devAmount, uint256 eachReserveAmount) internal {
     devMultisig.transfer(devAmount);
 
-    for(uint8 i = 0; i < 5; i++){
+    for(uint8 i = 0; i < reserveWallet.length; i++){
       reserveWallet[i].transfer(eachReserveAmount);
     }
   }
@@ -506,7 +502,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
       // dev team 20%, reserve 10 %
       uint256 devAmount = div(mul(tokenSold, 20), 70);
-      uint256 eachReserveAmount = div(div(mul(tokenSold, 10), 70), 5);
+      uint256 eachReserveAmount = div(div(mul(tokenSold, 10), 70), reserveWallet.length);
 
       token.mint(address(this), devAmount);
       distributeToken(devAmount, eachReserveAmount, false);
