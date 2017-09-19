@@ -213,7 +213,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
    * @param _addr address Account to push into buyerList
    */
   function pushBuyerList(address _addr) internal {
-		if (buyerFunded[false][_addr] > 0) {
+		if (buyerFunded[false][_addr] == 0) {
 			buyerList.push(_addr);
 		}
 	}
@@ -279,6 +279,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
       toFund = weiAmount;
     }
 
+    require(toFund > 0);
     require(weiAmount >= toFund);
 
     uint256 tokens = mul(toFund, presaleRate[beneficiary]);
@@ -415,32 +416,27 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     bool _isDeferred)
     internal
   {
-    // forward ether to vault
-    if (_toFund > 0) {
-      // update state
-
-      if (!_isDeferred) {
-        weiRaised = add(weiRaised, _toFund);
-      }
-
-      buyerFunded[_isDeferred][_beneficiary] = add(buyerFunded[_isDeferred][_beneficiary], _toFund);
-      pushBuyerList(_beneficiary);
-
-      if (!_isDeferred) {
-        token.mint(address(this), _tokens);
-      }
-
-      // 1 week lock
-      token.grantVestedTokens(
-        _beneficiary,
-        _tokens,
-        uint64(endTime),
-        uint64(endTime + 1 weeks),
-        uint64(endTime + 1 weeks),
-        false,
-        false);
-
+    // update state
+    if (!_isDeferred) {
+      weiRaised = add(weiRaised, _toFund);
     }
+
+    pushBuyerList(_beneficiary);
+    buyerFunded[_isDeferred][_beneficiary] = add(buyerFunded[_isDeferred][_beneficiary], _toFund);
+
+    if (!_isDeferred) {
+      token.mint(address(this), _tokens);
+    }
+
+    // 1 week lock
+    token.grantVestedTokens(
+      _beneficiary,
+      _tokens,
+      uint64(endTime),
+      uint64(endTime + 1 weeks),
+      uint64(endTime + 1 weeks),
+      false,
+      false);
 
     // return ether if needed
     if (_toReturn > 0) {
