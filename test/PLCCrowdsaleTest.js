@@ -30,8 +30,6 @@ contract(
       reserveWallet0,
       reserveWallet1,
       reserveWallet2,
-      reserveWallet3,
-      reserveWallet4,
       ...accounts
     ],
   ) => {
@@ -59,8 +57,6 @@ contract(
         reserveWallet0,
         reserveWallet1,
         reserveWallet2,
-        reserveWallet3,
-        reserveWallet4,
       ];
 
       startTime = moment.utc("2017-09-26").unix();
@@ -303,12 +299,13 @@ now:\t\t\t${ now }
         // Token Distribution
         const totalSupply = await token.totalSupply();
         const expectedDevTokenBalance = totalSupply.mul(20).div(100).toNumber();
-        const expectedEachReserveTokenBalance = totalSupply.mul(2).div(100).toNumber();
+        const expectedReserveTokenBalance = totalSupply.mul(10).div(100)
+        const expectedEachReserveTokenBalance = expectedReserveTokenBalance.div(reserveWallet.length).toNumber();
 
         (await token.balanceOf(multiSig.address)).toNumber()
           .should.be.within(expectedDevTokenBalance - 10 * 10 ** 17, expectedDevTokenBalance + 10 * 10 ** 17);
 
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < reserveWallet.length; i++) {
           (await token.balanceOf(reserveWallet[ i ])).toNumber()
             .should.be.within(expectedEachReserveTokenBalance - 10 * 10 ** 17, expectedEachReserveTokenBalance + 10 * 10 ** 17);
         }
@@ -639,7 +636,8 @@ now:\t\t\t${ now }
 
         // Ether Distribution
         const expectedDevBalance = totalInvestmentAmount.div(10);
-        const expectedEachReserveBalance = totalInvestmentAmount.mul(18).div(100);
+        const expectedReserveBalance =  totalInvestmentAmount.mul(9).div(10);
+        const expectedEachReserveBalance = expectedReserveBalance.div(reserveWallet.length);
 
         (await eth.getBalance(multiSig.address))
           .should.be.bignumber.equal(expectedDevBalance);
@@ -652,14 +650,21 @@ now:\t\t\t${ now }
         // Token Distribution
         const totalSupply = await token.totalSupply();
         const expectedDevTokenBalance = totalSupply.mul(20).div(100).toNumber();
-        const expectedEachReserveTokenBalance = totalSupply.mul(2).div(100).toNumber();
+        const expectedReserveTokenBalance = totalSupply.div(10);
+        const expectedEachReserveTokenBalance = expectedReserveTokenBalance.div(reserveWallet.length).toNumber();
 
         (await token.balanceOf(multiSig.address)).toNumber()
-          .should.be.within(expectedDevTokenBalance - 10 * 10 ** 17, expectedDevTokenBalance + 10 * 10 ** 17);
+          .should.be.within(
+            expectedDevTokenBalance - 10 * 10 ** 17,
+            expectedDevTokenBalance + 10 * 10 ** 17
+          );
 
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < reserveWallet.length; i++) {
           (await token.balanceOf(reserveWallet[ i ])).toNumber()
-            .should.be.within(expectedEachReserveTokenBalance - 10 * 10 ** 17, expectedEachReserveTokenBalance + 10 * 10 ** 17);
+            .should.be.within(
+              expectedEachReserveTokenBalance - 10 * 10 ** 17,
+              expectedEachReserveTokenBalance + 10 * 10 ** 17
+            );
         }
       });
 
