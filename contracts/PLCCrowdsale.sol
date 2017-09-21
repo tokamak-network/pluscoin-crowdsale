@@ -30,7 +30,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   uint64[5] public deadlines; // [1506643200, 1506902400, 1507161600, 1507420800, 1507593600]; // [2017.9.26, 2017.10.02, 2017.10.05, 2017.10.08, 2017.10.10]
 
   mapping (address => uint256) public presaleRate;
-	uint8[5] public rates = [240, 230, 220, 210, 200];
+  uint8[5] public rates = [240, 230, 220, 210, 200];
 
   // amount of raised money in wei
   uint256 public weiRaised;
@@ -213,10 +213,10 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
    * @param _addr address Account to push into buyerList
    */
   function pushBuyerList(address _addr) internal {
-		if (buyerFunded[false][_addr] == 0) {
-			buyerList.push(_addr);
-		}
-	}
+    if (buyerFunded[false][_addr] == 0) {
+      buyerList.push(_addr);
+    }
+  }
 
   /**
    * @dev register presale account checking modifier
@@ -287,16 +287,17 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
     buy(beneficiary, tokens, toFund, toReturn, true);
 
-
+    // token distribution : 70% for sale, 20% for dev, 10% for reserve
     uint256 devAmount = div(mul(tokens, 20), 70);
-    uint256 eachReserveAmount = div(div(mul(tokens, 10), 70), reserveWallet.length);
+    uint256 reserveAmount = div(mul(tokens, 10), 70);
 
-    distributeToken(devAmount, eachReserveAmount, true);
+    distributeToken(devAmount, reserveAmount, true);
 
+    // ether distribution : 10% for dev, 90% for reserve
     uint256 devEtherAmount = div(toFund, 10);
-    uint256 eachReserveEtherAmount = div(div(mul(toFund, 9), 10), reserveWallet.length);
+    uint256 reserveEtherAmount = div(mul(toFund, 9), 10);
 
-    distributeEther(devEtherAmount, eachReserveEtherAmount);
+    distributeEther(devEtherAmount, reserveEtherAmount);
 
     DeferredPresaleTokenPurchase(msg.sender, beneficiary, toFund, tokens);
   }
@@ -440,7 +441,10 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     }
   }
 
-  function distributeToken(uint256 devAmount, uint256 eachReserveAmount, bool _isDeferred) internal {
+
+  function distributeToken(uint256 devAmount, uint256 reserveAmount, bool _isDeferred) internal {
+    uint256 eachReserveAmount = div(reserveAmount, reserveWallet.length);
+
     token.grantVestedTokens(
       devMultisig,
       devAmount,
@@ -461,7 +465,9 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     }
   }
 
-  function distributeEther(uint256 devAmount, uint256 eachReserveAmount) internal {
+  function distributeEther(uint256 devAmount, uint256 reserveAmount) internal {
+    uint256 eachReserveAmount = div(reserveAmount, reserveWallet.length);
+
     devMultisig.transfer(devAmount);
 
     for(uint8 i = 0; i < reserveWallet.length; i++){
@@ -500,12 +506,13 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
       uint256 totalToken = token.totalSupply();
       uint256 tokenSold = sub(totalToken, deferredTotalTokens);
 
-      // dev team 20%, reserve 10 %
+      // token distribution : 70% for sale, 20% for dev, 10% for reserve
       uint256 devAmount = div(mul(tokenSold, 20), 70);
-      uint256 eachReserveAmount = div(div(mul(tokenSold, 10), 70), reserveWallet.length);
+      uint256 reserveAmount = div(mul(tokenSold, 10), 70);
 
       token.mint(address(this), devAmount);
-      distributeToken(devAmount, eachReserveAmount, false);
+
+      distributeToken(devAmount, reserveAmount, false);
     } else {
       vault.enableRefunds();
     }
@@ -533,7 +540,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     require(!minReached());
     require(numToRefund > 0);
 
-		uint256 limit = refundCompleted + numToRefund;
+    uint256 limit = refundCompleted + numToRefund;
 
     if (limit > buyerList.length) {
       limit = buyerList.length;
