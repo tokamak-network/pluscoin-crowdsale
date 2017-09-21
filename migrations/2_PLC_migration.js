@@ -15,17 +15,17 @@ module.exports = async function (deployer, network, accounts) {
   accounts.forEach((account, i) => console.log(`[${ i }]  ${ account }`));
 
   try {
-    const maxEtherCap = 100000 * 10 ** 18;
-    const minEtherCap = 30000 * 10 ** 18;
+    const maxEtherCap = 1 * 10 ** 18;
+    const minEtherCap = 2 * 10 ** 17;
 
-    const startTime = moment.utc("2017-09-26").unix();
-    const startDate = moment.utc("2017-09-26");
-    const endTime = moment.utc("2017-10-10").unix();
+    const startTime = moment.utc("2017-09-21T05:30").unix();
+    const startDate = moment.utc("2017-09-21T05:30");
+    const endTime = moment.utc("2017-09-21T06:30").unix();
 
-    const firstBonusDeadline = startDate.add(1, "day").unix();
-    const secondBonusDeadline = startDate.add(2, "day").unix();
-    const thirdBonusDeadline = startDate.add(3, "day").unix();
-    const fourthBonusDeadline = startDate.add(3, "day").unix();
+    const firstBonusDeadline = startDate.add(15, "minutes").unix();
+    const secondBonusDeadline = startDate.add(10, "minutes").unix();
+    const thirdBonusDeadline = startDate.add(10, "minutes").unix();
+    const fourthBonusDeadline = startDate.add(10, "minutes").unix();
 
     const timelines = [
       startTime,
@@ -36,32 +36,15 @@ module.exports = async function (deployer, network, accounts) {
       endTime,
     ];
 
-    // for demo
-
-    // const step = network === "development" ? "seconds" : "minutes";
-    // const timelines = [
-    //   moment().add(10, step).unix(), // start
-    //   moment().add(15, step).unix(),
-    //   moment().add(20, step).unix(),
-    //   moment().add(25, step).unix(),
-    //   moment().add(30, step).unix(),
-    //   moment().add(35, step).unix(), // end
-    // ];
-    // const maxEtherCap = 5 * 10 ** 18;
-    // const minEtherCap = 1 * 10 ** 18;
-
     const reserveWallet = [
       "0x922aa0d0e720caf10bcd7a02be187635a6f36ab0",
       "0x6267901dbb0055e12ea895fc768b68486d57dcf8",
       "0x236df55249ac7a6dfea613cd69ccd014c3cb8445",
     ];
 
-    if (network === "mainnet") {
-      kycAddress = "0x8fc95Edf1C8720510809d881b1E3A44aB4B8d031";
-    } else {
-      const kyc = await KYC.new();
-      kycAddress = kyc.address;
-    }
+    const kyc = await KYC.new();
+    kycAddress = kyc.address;
+
     console.log("kyc deployed at", kycAddress);
 
     const multiSig = await MultiSig.new(reserveWallet, reserveWallet.length - 1); // 4 out of 5

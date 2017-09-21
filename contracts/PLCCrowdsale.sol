@@ -36,7 +36,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   uint256 public weiRaised;
 
   // amount of ether buyer can buy
-  uint256 constant public maxGuaranteedLimit = 5000 ether;
+  uint256 constant public maxGuaranteedLimit = 0.4 ether;
 
   // amount of ether presale buyer can buy
   mapping (address => uint256) public presaleGuaranteedLimit;
@@ -52,7 +52,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
 
   // buyable interval in block number 20
-  uint256 constant public maxCallFrequency = 20;
+  uint256 constant public maxCallFrequency = 8;
 
   // block number when buyer buy
   mapping (address => uint256) public lastCallBlock;
@@ -70,7 +70,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   uint256 refundCompleted;
 
   //new owner of token contract when crowdsale is Finalized
-  address newTokenOwner = 0x2c14c48e09913dd49d04145458c38c2b5e151fec;
+  address newTokenOwner = 0x08648df7b14b7aa4282f84bd105af65eb3a4c73d;
 
   // refund vault used to hold funds while crowdsale is running
   RefundVault public vault;
@@ -429,8 +429,8 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
       _beneficiary,
       _tokens,
       uint64(endTime),
-      uint64(endTime + 1 weeks),
-      uint64(endTime + 1 weeks),
+      uint64(endTime + 15 minutes),
+      uint64(endTime + 15 minutes),
       false,
       false);
 
@@ -446,7 +446,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
       devAmount,
       uint64(endTime),
       uint64(endTime),
-      uint64(endTime + 1 years),
+      uint64(endTime + 20 minutes),
       false,
       false);
 
