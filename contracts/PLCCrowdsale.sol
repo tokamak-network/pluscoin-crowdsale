@@ -238,7 +238,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     presaleRate[presaleInvestor] = _presaleRate;
     isDeferred[presaleInvestor] = _isDeferred;
 
-    if(_isDeferred){
+    if(_isDeferred) {
       weiRaised = add(weiRaised, presaleAmount);
 
       uint256 deferredInvestorToken = mul(presaleAmount, _presaleRate);

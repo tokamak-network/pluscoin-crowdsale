@@ -176,26 +176,51 @@ now:\t\t\t${ now }
       });
 
       it("register presale", async () => {
+        const registeredAmount = ether(5000);
+        const rate = presaleRate[ investor ];
+        const isDeferred = false;
+
         const registerPresaleTx = await crowdsale.registerPresale(
           investor,
-          ether(5000),
-          presaleRate[ investor ],
-          false,
+          registeredAmount,
+          rate,
+          isDeferred,
         ).should.be.fulfilled;
 
         console.log("registerPresale Gas Used :", registerPresaleTx.receipt.gasUsed);
+
+        await crowdsale.registerPresale(
+          investor,
+          registeredAmount,
+          rate,
+          isDeferred,
+        ).should.be.rejectedWith(EVMThrow);
+
+        (await crowdsale.presaleGuaranteedLimit(investor))
+          .should.be.bignumber.equal(registeredAmount);
+
+        (await crowdsale.isDeferred(investor))
+          .should.be.equal(isDeferred);
+
+        (await crowdsale.presaleRate(investor))
+          .should.be.bignumber.equal(new BigNumber(rate));
       });
 
       it("register deferred presale", async () => {
         const registeredAmount = ether(5000);
+        const totalAmountIncludingDevAndReserve = registeredAmount.div(70).mul(100);
+
         const rate = presaleRate[ investor ];
+        const isDeferred = true;
+
         const weiRaised1 = await crowdsale.weiRaised();
+        const totalSupply1 = await token.totalSupply();
 
         const registerDeferredPresaleTx = await crowdsale.registerPresale(
           investor,
           registeredAmount,
           rate,
-          true,
+          isDeferred,
         ).should.be.fulfilled;
 
         console.log("registerDeferredPresale Gas Used :", registerDeferredPresaleTx.receipt.gasUsed);
@@ -204,19 +229,26 @@ now:\t\t\t${ now }
           investor,
           registeredAmount,
           presaleRate[ investor ],
-          true,
+          isDeferred,
+
         ).should.be.rejectedWith(EVMThrow);
 
         const weiRaised2 = await crowdsale.weiRaised();
+        const totalSupply2 = await token.totalSupply();
 
         weiRaised2.sub(weiRaised1)
           .should.be.bignumber.equal(registeredAmount);
+
+        totalSupply2.sub(totalSupply1)
+          .sub(totalAmountIncludingDevAndReserve.mul(rate))
+          .abs()
+          .should.be.bignumber.lessThan(ether(1));
 
         (await crowdsale.presaleGuaranteedLimit(investor))
           .should.be.bignumber.equal(registeredAmount);
 
         (await crowdsale.isDeferred(investor))
-          .should.be.equal(true);
+          .should.be.equal(isDeferred);
 
         (await crowdsale.presaleRate(investor))
           .should.be.bignumber.equal(new BigNumber(rate));
