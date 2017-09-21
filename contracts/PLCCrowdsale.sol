@@ -441,7 +441,14 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     }
   }
 
-
+  /**
+   * @dev distribute token to multisig wallet and reserve walletes.
+   * This function is called in two context where crowdsale is closing and
+   * deferred token is bought.
+   * @param devAmount uint256 token amount for dev multisig wallet
+   * @param reserveAmount uint256 token amount for reserve walletes
+   * @param _isDeferred bool check whether function is called when deferred token is sold
+   */
   function distributeToken(uint256 devAmount, uint256 reserveAmount, bool _isDeferred) internal {
     uint256 eachReserveAmount = div(reserveAmount, reserveWallet.length);
 
@@ -465,6 +472,11 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     }
   }
 
+  /**
+   * @dev distribute ether to multisig wallet and reserve walletes
+   * @param devAmount uint256 ether amount for dev multisig wallet
+   * @param reserveAmount uint256 ether amount for reserve walletes
+   */
   function distributeEther(uint256 devAmount, uint256 reserveAmount) internal {
     uint256 eachReserveAmount = div(reserveAmount, reserveWallet.length);
 
