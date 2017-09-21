@@ -187,12 +187,39 @@ now:\t\t\t${ now }
       });
 
       it("register deferred presale", async () => {
-        await crowdsale.registerPresale(
+        const registeredAmount = ether(5000);
+        const rate = presaleRate[ investor ];
+        const weiRaised1 = await crowdsale.weiRaised();
+
+        const registerDeferredPresaleTx = await crowdsale.registerPresale(
           investor,
-          ether(5000),
-          presaleRate[ investor ],
+          registeredAmount,
+          rate,
           true,
         ).should.be.fulfilled;
+
+        console.log("registerDeferredPresale Gas Used :", registerDeferredPresaleTx.receipt.gasUsed);
+
+        await crowdsale.registerPresale(
+          investor,
+          registeredAmount,
+          presaleRate[ investor ],
+          true,
+        ).should.be.rejectedWith(EVMThrow);
+
+        const weiRaised2 = await crowdsale.weiRaised();
+
+        weiRaised2.sub(weiRaised1)
+          .should.be.bignumber.equal(registeredAmount);
+
+        (await crowdsale.presaleGuaranteedLimit(investor))
+          .should.be.bignumber.equal(registeredAmount);
+
+        (await crowdsale.isDeferred(investor))
+          .should.be.equal(true);
+
+        (await crowdsale.presaleRate(investor))
+          .should.be.bignumber.equal(new BigNumber(rate));
       });
 
       // Presale
@@ -299,7 +326,7 @@ now:\t\t\t${ now }
         // Token Distribution
         const totalSupply = await token.totalSupply();
         const expectedDevTokenBalance = totalSupply.mul(20).div(100).toNumber();
-        const expectedReserveTokenBalance = totalSupply.mul(10).div(100)
+        const expectedReserveTokenBalance = totalSupply.mul(10).div(100);
         const expectedEachReserveTokenBalance = expectedReserveTokenBalance.div(reserveWallet.length).toNumber();
 
         (await token.balanceOf(multiSig.address)).toNumber()
@@ -636,7 +663,7 @@ now:\t\t\t${ now }
 
         // Ether Distribution
         const expectedDevBalance = totalInvestmentAmount.div(10);
-        const expectedReserveBalance =  totalInvestmentAmount.mul(9).div(10);
+        const expectedReserveBalance = totalInvestmentAmount.mul(9).div(10);
         const expectedEachReserveBalance = expectedReserveBalance.div(reserveWallet.length);
 
         (await eth.getBalance(multiSig.address))
@@ -656,14 +683,14 @@ now:\t\t\t${ now }
         (await token.balanceOf(multiSig.address)).toNumber()
           .should.be.within(
             expectedDevTokenBalance - 10 * 10 ** 17,
-            expectedDevTokenBalance + 10 * 10 ** 17
+            expectedDevTokenBalance + 10 * 10 ** 17,
           );
 
         for (let i = 0; i < reserveWallet.length; i++) {
           (await token.balanceOf(reserveWallet[ i ])).toNumber()
             .should.be.within(
               expectedEachReserveTokenBalance - 10 * 10 ** 17,
-              expectedEachReserveTokenBalance + 10 * 10 ** 17
+              expectedEachReserveTokenBalance + 10 * 10 ** 17,
             );
         }
       });
