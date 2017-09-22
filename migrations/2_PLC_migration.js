@@ -19,13 +19,12 @@ module.exports = async function (deployer, network, accounts) {
     const minEtherCap = 30000 * 10 ** 18;
 
     const startTime = moment.utc("2017-09-26").unix();
-    const startDate = moment.utc("2017-09-26");
     const endTime = moment.utc("2017-10-10").unix();
 
-    const firstBonusDeadline = startDate.add(1, "day").unix();
-    const secondBonusDeadline = startDate.add(2, "day").unix();
-    const thirdBonusDeadline = startDate.add(3, "day").unix();
-    const fourthBonusDeadline = startDate.add(3, "day").unix();
+    const firstBonusDeadline = moment.utc("2017-09-27").unix();
+    const secondBonusDeadline = moment.utc("2017-09-30").unix();
+    const thirdBonusDeadline = moment.utc("2017-10-03").unix();
+    const fourthBonusDeadline = moment.utc("2017-10-06").unix();
 
     const timelines = [
       startTime,
@@ -35,20 +34,6 @@ module.exports = async function (deployer, network, accounts) {
       fourthBonusDeadline,
       endTime,
     ];
-
-    // for demo
-
-    // const step = network === "development" ? "seconds" : "minutes";
-    // const timelines = [
-    //   moment().add(10, step).unix(), // start
-    //   moment().add(15, step).unix(),
-    //   moment().add(20, step).unix(),
-    //   moment().add(25, step).unix(),
-    //   moment().add(30, step).unix(),
-    //   moment().add(35, step).unix(), // end
-    // ];
-    // const maxEtherCap = 5 * 10 ** 18;
-    // const minEtherCap = 1 * 10 ** 18;
 
     const reserveWallet = [
       "0x822Bb1cdd2051323ABdb3D705E6d67F70c6F1516",
@@ -64,7 +49,7 @@ module.exports = async function (deployer, network, accounts) {
     }
     console.log("kyc deployed at", kycAddress);
 
-    const multiSig = await MultiSig.new(reserveWallet, reserveWallet.length - 1); // 4 out of 5
+    const multiSig = await MultiSig.new(reserveWallet, reserveWallet.length - 1); // 2 out of 3
     console.log("multiSig deployed at", multiSig.address);
 
     const token = await PLC.new();
