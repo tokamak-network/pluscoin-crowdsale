@@ -63,22 +63,22 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   uint256 public maxEtherCap; // 100000 ether;
   uint256 public minEtherCap; // 30000 ether;
 
-  //investor address list
+  // investor address list
   address[] buyerList;
 
-  //number of refunded investors
+  // number of refunded investors
   uint256 refundCompleted;
 
-  //new owner of token contract when crowdsale is Finalized
+  // new owner of token contract when crowdsale is Finalized
   address newTokenOwner = 0x2c14c48e09913dd49d04145458c38c2b5e151fec;
 
   // refund vault used to hold funds while crowdsale is running
   RefundVault public vault;
 
-  //dev team multisig wallet
+  // dev team multisig wallet
   address devMultisig;
 
-  //reserve
+  // reserve
   address[] reserveWallet;
 
   /**
@@ -274,6 +274,8 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     uint256 _amount = presaleGuaranteedLimit[presaleInvestor];
     uint256 _rate = presaleRate[presaleInvestor];
     bool _isDeferred = isDeferred[presaleInvestor];
+
+    require(buyerFunded[_isDeferred][presaleInvestor] == 0);
 
     presaleGuaranteedLimit[presaleInvestor] = 0;
     presaleRate[presaleInvestor] = 0;
