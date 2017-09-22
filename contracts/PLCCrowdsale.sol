@@ -71,7 +71,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   uint256 refundCompleted;
 
   // new owner of token contract when crowdsale is Finalized
-  address newTokenOwner = 0x2c14c48e09913dd49d04145458c38c2b5e151fec;
+  address newTokenOwner = 0x08648Df7b14B7aa4282f84bd105af65Eb3a4c73d;
 
   // refund vault used to hold funds while crowdsale is running
   RefundVault public vault;
