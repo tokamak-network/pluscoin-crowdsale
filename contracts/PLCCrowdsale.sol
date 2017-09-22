@@ -459,11 +459,14 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     bool _isDeferred)
     internal
   {
-    pushBuyerList(_beneficiary);
+    if (!_isDeferred) {
+      pushBuyerList(_beneficiary);
+      weiRaised = add(weiRaised, _toFund);
+    }
+
     buyerFunded[_isDeferred][_beneficiary] = add(buyerFunded[_isDeferred][_beneficiary], _toFund);
 
     if (!_isDeferred) {
-      weiRaised = add(weiRaised, _toFund);
       token.mint(address(this), _tokens);
     }
 

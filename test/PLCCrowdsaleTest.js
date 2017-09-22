@@ -229,6 +229,7 @@ now:\t\t\t${ now }
 
         const weiRaised1 = await crowdsale.weiRaised();
         const totalSupply1 = await token.totalSupply();
+        const deferredTotalTokens1 = await crowdsale.deferredTotalTokens();
 
         const registerDeferredPresaleTx = await crowdsale.registerPresale(
           investor,
@@ -249,6 +250,7 @@ now:\t\t\t${ now }
 
         const weiRaised2 = await crowdsale.weiRaised();
         const totalSupply2 = await token.totalSupply();
+        const deferredTotalTokens2 = await crowdsale.deferredTotalTokens();
 
         weiRaised2.sub(weiRaised1)
           .should.be.bignumber.equal(registeredAmount);
@@ -257,6 +259,9 @@ now:\t\t\t${ now }
           .sub(totalAmountIncludingDevAndReserve.mul(rate))
           .abs()
           .should.be.bignumber.lessThan(ether(1));
+
+        deferredTotalTokens2
+          .should.be.bignumber.equal(totalSupply2);
 
         (await crowdsale.presaleGuaranteedLimit(investor))
           .should.be.bignumber.equal(registeredAmount);
@@ -284,9 +289,11 @@ now:\t\t\t${ now }
         // check whether variables are the same as previous registery
         const weiRaised3 = await crowdsale.weiRaised();
         const totalSupply3 = await token.totalSupply();
+        const deferredTotalTokens3 = await crowdsale.deferredTotalTokens();
 
         weiRaised1.should.be.bignumber.equal(weiRaised3);
         totalSupply1.should.be.bignumber.equal(totalSupply3);
+        deferredTotalTokens1.should.be.bignumber.equal(deferredTotalTokens3);
       });
 
       // Presale
