@@ -65,6 +65,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
 
   // investor address list
   address[] buyerList;
+  mapping (address => bool) inBuyerList;
 
   // number of refunded investors
   uint256 refundCompleted;
@@ -219,7 +220,8 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
    * @param _addr address Account to push into buyerList
    */
   function pushBuyerList(address _addr) internal {
-    if (buyerFunded[false][_addr] == 0) {
+    if (!inBuyerList[_addr]) {
+      inBuyerList[_addr] = true;
       buyerList.push(_addr);
     }
   }
@@ -468,7 +470,7 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     internal
   {
     if (!_isDeferred) {
-      pushBuyerList(_beneficiary);
+      pushBuyerList(msg.sender);
       weiRaised = add(weiRaised, _toFund);
     }
 
