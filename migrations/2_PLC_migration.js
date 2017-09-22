@@ -51,9 +51,9 @@ module.exports = async function (deployer, network, accounts) {
     // const minEtherCap = 1 * 10 ** 18;
 
     const reserveWallet = [
-      "0x922aa0d0e720caf10bcd7a02be187635a6f36ab0",
-      "0x6267901dbb0055e12ea895fc768b68486d57dcf8",
-      "0x236df55249ac7a6dfea613cd69ccd014c3cb8445",
+      "0x822Bb1cdd2051323ABdb3D705E6d67F70c6F1516",
+      "0x3a9DdA0eC79B6C38b650C56F4885C291551542a2",
+      "0x528960b54D618A99683EbDcCd83Ed5da02616a45",
     ];
 
     if (network === "mainnet") {
