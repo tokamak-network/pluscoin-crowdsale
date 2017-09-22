@@ -435,6 +435,14 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   }
 
   /**
+   * @dev get the number of buyers
+   * @return uint256 the number of buyers
+   */
+  function getBuyerNumber() constant returns (uint256) {
+    return buyerList.length;
+  }
+
+  /**
    * @dev send ether to the fund collection wallet
    * @param toFund uint256 The value of weis to send to vault
    */
