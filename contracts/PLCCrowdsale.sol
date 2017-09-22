@@ -287,9 +287,8 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
       uint256 deferredReserveToken = div(mul(deferredInvestorToken, 10), 70);
 
       uint256 totalAmount = add(deferredInvestorToken, add(deferredDevToken, deferredReserveToken));
-      token.burn(totalAmount);
-
       deferredTotalTokens = sub(deferredTotalTokens, totalAmount);
+      token.burn(totalAmount);
     }
 
     UnregisterPresale(presaleInvestor);
