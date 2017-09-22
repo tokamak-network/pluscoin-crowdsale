@@ -140,6 +140,12 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
   event RegisterPresale(address indexed presaleInvestor, uint256 presaleAmount, uint256 _presaleRate, bool _isDeferred);
 
   /**
+   * event for unregister presale logging
+   * @param presaleInvestor who register for presale
+   */
+  event UnregisterPresale(address indexed presaleInvestor);
+
+  /**
    * @dev PLCCrowdsale constructor sets variables
    * @param _kyc address The address which KYC contract is deployed at
    * @param _token address The address which PLC contract is deployed at
@@ -252,6 +258,41 @@ contract PLCCrowdsale is Ownable, SafeMath, Pausable {
     }
 
     RegisterPresale(presaleInvestor, presaleAmount, _presaleRate, _isDeferred);
+  }
+
+  /**
+   * @dev register presale account checking modifier
+   * @param presaleInvestor address The account to register as presale account
+   */
+  function unregisterPresale(address presaleInvestor)
+    onlyBeforeStart
+    onlyOwner
+  {
+    require(presaleInvestor != 0x00);
+    require(presaleGuaranteedLimit[presaleInvestor] > 0);
+
+    uint256 _amount = presaleGuaranteedLimit[presaleInvestor];
+    uint256 _rate = presaleRate[presaleInvestor];
+    bool _isDeferred = isDeferred[presaleInvestor];
+
+    presaleGuaranteedLimit[presaleInvestor] = 0;
+    presaleRate[presaleInvestor] = 0;
+    isDeferred[presaleInvestor] = false;
+
+    if(_isDeferred) {
+      weiRaised = sub(weiRaised, _amount);
+
+      uint256 deferredInvestorToken = mul(_amount, _rate);
+      uint256 deferredDevToken = div(mul(deferredInvestorToken, 20), 70);
+      uint256 deferredReserveToken = div(mul(deferredInvestorToken, 10), 70);
+
+      uint256 totalAmount = add(deferredInvestorToken, add(deferredDevToken, deferredReserveToken));
+      token.burn(totalAmount);
+
+      deferredTotalTokens = sub(deferredTotalTokens, totalAmount);
+    }
+
+    UnregisterPresale(presaleInvestor);
   }
 
   /**

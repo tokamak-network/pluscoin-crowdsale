@@ -175,7 +175,7 @@ now:\t\t\t${ now }
           .should.be.rejectedWith(EVMThrow);
       });
 
-      it("register presale", async () => {
+      it("register and unregister presale", async () => {
         const registeredAmount = ether(5000);
         const rate = presaleRate[ investor ];
         const isDeferred = false;
@@ -204,9 +204,23 @@ now:\t\t\t${ now }
 
         (await crowdsale.presaleRate(investor))
           .should.be.bignumber.equal(new BigNumber(rate));
+
+        // unregister
+        const unregisterPresaleTx = await crowdsale.unregisterPresale(investor)
+          .should.be.fulfilled;
+        console.log("unregisterPresale Gas Used :", unregisterPresaleTx.receipt.gasUsed);
+
+        (await crowdsale.presaleGuaranteedLimit(investor))
+          .should.be.bignumber.equal(new BigNumber(0));
+
+        (await crowdsale.isDeferred(investor))
+          .should.be.equal(false);
+
+        (await crowdsale.presaleRate(investor))
+          .should.be.bignumber.equal(new BigNumber(0));
       });
 
-      it("register deferred presale", async () => {
+      it("register and unregister deferred presale", async () => {
         const registeredAmount = ether(5000);
         const totalAmountIncludingDevAndReserve = registeredAmount.div(70).mul(100);
 
@@ -252,6 +266,27 @@ now:\t\t\t${ now }
 
         (await crowdsale.presaleRate(investor))
           .should.be.bignumber.equal(new BigNumber(rate));
+
+        // unregister
+        const unregisterDeferredPresaleTx = await crowdsale.unregisterPresale(investor)
+          .should.be.fulfilled;
+        console.log("unregisterDeferredPresale Gas Used :", unregisterDeferredPresaleTx.receipt.gasUsed);
+
+        (await crowdsale.presaleGuaranteedLimit(investor))
+          .should.be.bignumber.equal(new BigNumber(0));
+
+        (await crowdsale.isDeferred(investor))
+          .should.be.equal(false);
+
+        (await crowdsale.presaleRate(investor))
+          .should.be.bignumber.equal(new BigNumber(0));
+
+        // check whether variables are the same as previous registery
+        const weiRaised3 = await crowdsale.weiRaised();
+        const totalSupply3 = await token.totalSupply();
+
+        weiRaised1.should.be.bignumber.equal(weiRaised3);
+        totalSupply1.should.be.bignumber.equal(totalSupply3);
       });
 
       // Presale
