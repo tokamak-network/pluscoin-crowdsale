@@ -1,6 +1,8 @@
 ### Contracts
 - KYC.sol: Account registery contract for crowdsale, deployed at [0x8fc95Edf1C8720510809d881b1E3A44aB4B8d031](https://etherscan.io/address/0x8fc95Edf1C8720510809d881b1E3A44aB4B8d031)
 
+- PLCCrowdsale.sol: crowdsale contract, deployed at [0x58ebcd3230e0c28bf82e3f91f72d80eff32d00f4](https://etherscan.io/address/0x58ebcd3230e0c28bf82e3f91f72d80eff32d00f4)
+
 ### Abi
 - KYC.abi:
 ```
